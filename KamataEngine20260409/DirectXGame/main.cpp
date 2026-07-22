@@ -27,14 +27,23 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 			break;
 		}
 
+		// 入力更新
+		Input::GetInstance()->Update();
+
 		// ゲームシーンの更新
 		gameScene->Update();
 
 		// 描画開始
 		dxCommon->PreDraw();
 
+		// 3Dモデル描画開始
+		Model::PreDraw();
+
 		// ゲームシーンの描画
 		gameScene->Draw();
+
+		// 3Dモデル描画終了
+		Model::PostDraw();
 
 		// 描画終了
 		dxCommon->PostDraw();
