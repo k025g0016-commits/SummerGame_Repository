@@ -2,6 +2,7 @@
 #include "KamataEngine.h"
 
 class Player;
+class MapChipField;
 
 class Boomerang 
 {
@@ -41,6 +42,14 @@ public:
 	// ワールド座標取得
 	KamataEngine::Vector3 GetWorldPosition() const;
 
+	void StartReturn();
+
+	// マップチップフィールドを設定
+	void SetMapChipField(MapChipField* mapChipField)
+	{
+		mapChipField_ = mapChipField; 
+	}
+
 private:
 	// 所持中
 	void UpdateHeld();
@@ -71,4 +80,11 @@ private:
 	static inline const float kMaxDistance = 7.0f;
 	static inline const float kCatchDistance = 0.4f;
 	static inline const float kRotationSpeed = 0.2f;
+
+	// マップチップフィールド
+	MapChipField* mapChipField_ = nullptr;
+
+	// 行きのブーメランが地形に当たったか
+	bool CheckMapCollision() const;
+
 };

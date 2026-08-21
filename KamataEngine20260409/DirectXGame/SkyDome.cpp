@@ -11,7 +11,7 @@ void SkyDome::Initialize(Model* model, const Camera* camera)
 	worldTransform_.Initialize();
 
 	// 天球を大きくする
-	worldTransform_.scale_ = {1000.0f, 1000.0f, 1000.0f};
+	worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
 
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
 

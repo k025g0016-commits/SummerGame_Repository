@@ -41,6 +41,38 @@ public:
 		mapChipField_ = mapChipField; 
 	}
 
+	// 盾を構えているか
+	bool IsGuarding() const
+	{
+		return isGuarding_; 
+	}
+
+	// ダメージを受ける
+	void OnHit(int damage);
+
+	// 死亡しているか
+	bool IsDead() const 
+	{ 
+		return isDead_; 
+	}
+
+	// 現在のHPを取得
+	int GetHP() const 
+	{
+		return hp_;
+	}
+
+	void PushBack(float moveX);
+
+	// 外部から移動量を加える
+	void MoveBy(const KamataEngine::Vector3& move);
+
+	// 動く床の上に着地させる
+	void LandOnMoveBlock(float moveBlockTop);
+
+    // 動く床との衝突を解決
+	void ResolveMoveBlockCollision(const KamataEngine::Vector3& moveBlockPosition, const KamataEngine::Vector3& moveBlockMoveAmount);
+
 private:
 	// マップ衝突判定の結果
 	struct CollisionMapInfo 
@@ -94,6 +126,9 @@ private:
 	// 接地状態を切り替える
 	void UpdateOnGround(const CollisionMapInfo& info);
 
+	// 盾構えの更新
+	void UpdateGuard();
+
 	// 指定した座標を中心とする四隅を計算
 	std::array<KamataEngine::Vector3, kNumCorner> GetCornerPositions(const KamataEngine::Vector3& center) const;
 
@@ -113,6 +148,9 @@ private:
 
 	// 接地しているか
 	bool onGround_ = false;
+
+	// 盾を構えているか
+	bool isGuarding_ = false;
 
 	// 前フレームでSpaceキーが押されていたか
 	bool wasJumpKeyPressed_ = false;
@@ -137,5 +175,29 @@ private:
 
 	// 接地確認時に足元を下へずらす量
 	static inline const float kGroundCheckOffset = 0.05f;
+
+	// 構え中の移動速度倍率
+	static inline const float kGuardMoveRate = 0.5f;
+
+	// 最大HP
+	static inline const int kMaxHP = 1;
+
+	// 現在のHP
+	int hp_ = kMaxHP;
+
+	// 死亡しているか
+	bool isDead_ = false;
+
+	// 描画専用ワールド変換
+	KamataEngine::WorldTransform drawWorldTransform_;
+
+	// ノックバックの横速度
+	float knockBackVelocityX_ = 0.0f;
+
+	// ノックバックの減速量
+	static inline const float kKnockBackDeceleration = 0.03f;
+
+	// 更新前のプレイヤー位置
+	KamataEngine::Vector3 previousPosition_ = {};
 
 };

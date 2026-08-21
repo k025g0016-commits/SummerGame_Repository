@@ -7,9 +7,20 @@
 // マップチップの種類
 enum class MapChipType 
 {
-	kBlank, // 空白
-	kBlock, // B0
-	kPlayer // P0
+	kBlank,        // 空白
+	kBlock,        // B0
+	kSpikeBlock,   // B1
+	kPlayer,       // P0
+	kEnemy,        // E0
+	kArrowEnemy,   // E1
+	kShieldEnemy,  // E2
+	kBoss,         // E3
+	kBossArea,     // A0
+	kSwitch,       // G0
+	kShutterDoor,  // G1
+	kMoveBlock,    // G2
+	kBesideRail,   // R0
+	kVerticalRail, // R1
 };
 
 // マップチップの番号
@@ -49,11 +60,47 @@ public:
 	// プレイヤーの初期位置を取得
 	KamataEngine::Vector3 GetPlayerPosition() const;
 
+	// 剣敵E0の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetEnemyPositions() const;
+
+	// 遠距離敵E1の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetArrowEnemyPositions() const;
+
 	// 横のマップチップ数
 	uint32_t GetNumBlockHorizontal() const;
 
 	// 縦のマップチップ数
 	uint32_t GetNumBlockVertical() const;
+
+	// 盾敵E2の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetShieldEnemyPositions() const;
+
+	// スイッチG0の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetSwitchPositions() const;
+
+	// シャッタードアG1の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetShutterDoorPositions() const;
+
+	// 動く床G2の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetMoveBlockPositions() const;
+
+	// 横レールR0の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetBesideRailPositions() const;
+
+	// 縦レールR1の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetVerticalRailPositions() const;
+
+	// ダメージ床B1の初期位置をすべて取得
+	std::vector<KamataEngine::Vector3> GetSpikeBlockPositions() const;
+
+	// ボスE3の初期位置を取得
+	KamataEngine::Vector3 GetBossPosition() const;
+
+	// ボスエリアA0の位置を取得
+	std::vector<KamataEngine::Vector3> GetBossAreaPositions() const;
+
+	// ボスエリアの開始位置を取得
+	KamataEngine::Vector3 GetBossAreaPosition() const;
 
 private:
 	// 文字列からマップチップの種類へ変換

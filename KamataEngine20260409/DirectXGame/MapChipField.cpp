@@ -161,10 +161,322 @@ MapChipType MapChipField::ParseMapChipType(const std::string& word) const
 		return MapChipType::kBlock;
 	}
 
+	if (word == "B1") 
+	{
+		return MapChipType::kSpikeBlock;
+	}
+
 	if (word == "P0")
 	{
 		return MapChipType::kPlayer;
 	}
 
+	if (word == "E0")
+	{
+		return MapChipType::kEnemy;
+	}
+
+	if (word == "E1")
+	{
+		return MapChipType::kArrowEnemy;
+	}
+
+	if (word == "E2")
+	{
+		return MapChipType::kShieldEnemy;
+	}
+
+	if (word == "E3")
+	{
+		return MapChipType::kBoss;
+	}
+
+	if (word == "A0") 
+	{
+		return MapChipType::kBossArea;
+	}
+
+	if (word == "G0") 
+	{
+		return MapChipType::kSwitch;
+	}
+
+	if (word == "G1")
+	{
+		return MapChipType::kShutterDoor;
+	}
+
+	if (word == "G2")
+	{
+		return MapChipType::kMoveBlock;
+	}
+
+	if (word == "R0")
+	{
+		return MapChipType::kBesideRail;
+	}
+
+	if (word == "R1") 
+	{
+		return MapChipType::kVerticalRail;
+	}
+
 	return MapChipType::kBlank;
+}
+
+std::vector<Vector3> MapChipField::GetEnemyPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kEnemy) 
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetArrowEnemyPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kArrowEnemy) 
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetShieldEnemyPositions() const
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kShieldEnemy)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetSwitchPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kSwitch)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetShutterDoorPositions() const
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kShutterDoor)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetMoveBlockPositions() const
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kMoveBlock)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetBesideRailPositions() const
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kBesideRail) 
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetVerticalRailPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kVerticalRail)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetSpikeBlockPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kSpikeBlock) 
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+Vector3 MapChipField::GetBossPosition() const
+{
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kBoss) 
+			{
+				return GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex));
+			}
+		}
+	}
+
+	// E3がなかった場合
+	return {0.0f, 0.0f, 0.0f};
+}
+
+std::vector<Vector3> MapChipField::GetBossAreaPositions() const
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kBossArea) 
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+Vector3 MapChipField::GetBossAreaPosition() const
+{
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex)
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex) 
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kBossArea) 
+			{
+				return GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex));
+			}
+		}
+	}
+
+	return {0.0f, 0.0f, 0.0f};
 }

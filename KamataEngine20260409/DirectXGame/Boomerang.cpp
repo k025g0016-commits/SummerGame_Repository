@@ -1,6 +1,7 @@
 #include "Boomerang.h"
 #include "MathUtility.h"
 #include "Player.h"
+#include "MapChipField.h"
 
 using namespace KamataEngine;
 
@@ -95,14 +96,32 @@ void Boomerang::UpdateHeld()
 
 void Boomerang::UpdateOutbound() 
 {
+	// 移動前の位置を保存
+	const Vector3 previousPosition = worldTransform_.translation_;
+
+	// 行きの移動
 	worldTransform_.translation_ = Add(worldTransform_.translation_, velocity_);
 
+	// 行きのときだけ地形との衝突判定
+	if (CheckMapCollision()) 
+	{
+		// 地形の中へ入り込まないように、
+		// 移動前の位置へ戻す
+		worldTransform_.translation_ = previousPosition;
+
+		// 帰還開始
+		StartReturn();
+
+		return;
+	}
+
+	// 投擲開始位置からの距離
 	const Vector3 difference = Subtract(worldTransform_.translation_, throwStartPosition_);
 
 	// 最大距離に達したら帰還開始
 	if (Length(difference) >= kMaxDistance) 
 	{
-		phase_ = Phase::kReturn;
+		StartReturn();
 	}
 }
 
@@ -126,4 +145,49 @@ void Boomerang::UpdateReturn()
 	const Vector3 direction = Normalize(difference);
 
 	worldTransform_.translation_ = Add(worldTransform_.translation_, Multiply(kReturnSpeed, direction));
+}
+
+void Boomerang::StartReturn()
+{
+	if (phase_ == Phase::kOutbound)
+	{
+		phase_ = Phase::kReturn;
+	}
+}
+
+bool Boomerang::CheckMapCollision() const
+{
+	if (mapChipField_ == nullptr)
+	{
+		return false;
+	}
+
+	constexpr float kHalfWidth = 0.3f;
+	constexpr float kHalfHeight = 0.3f;
+
+	const Vector3 position = worldTransform_.translation_;
+
+	// ブーメランの四隅
+	const Vector3 checkPositions[] =
+	{
+	    {position.x - kHalfWidth, position.y - kHalfHeight, position.z},
+	    {position.x + kHalfWidth, position.y - kHalfHeight, position.z},
+	    {position.x - kHalfWidth, position.y + kHalfHeight, position.z},
+	    {position.x + kHalfWidth, position.y + kHalfHeight, position.z},
+	};
+
+	for (const Vector3& checkPosition : checkPositions)
+	{
+		const MapChipIndexSet index = mapChipField_->GetMapChipIndexSetByPosition(checkPosition);
+
+		const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(index.xIndex, index.yIndex);
+
+		// ブーメランの行きを遮る地形
+		if (mapChipType == MapChipType::kBlock || mapChipType == MapChipType::kSpikeBlock || mapChipType == MapChipType::kShutterDoor)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

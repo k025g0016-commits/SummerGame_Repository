@@ -163,13 +163,28 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ArrowBullet.cpp" />
+    <ClCompile Include="ArrowEnemy.cpp" />
+    <ClCompile Include="BackgroundWall.cpp" />
     <ClCompile Include="Boomerang.cpp" />
+    <ClCompile Include="Boss.cpp" />
+    <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="Fade.cpp" />
+    <ClCompile Include="GameClearScene.cpp" />
+    <ClCompile Include="GameOverScene.cpp" />
     <ClCompile Include="GameScene.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapChipField.cpp" />
     <ClCompile Include="MathUtility.cpp" />
+    <ClCompile Include="MoveBlock.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="ShieldEnemy.cpp" />
+    <ClCompile Include="ShutterDoor.cpp" />
     <ClCompile Include="SkyDome.cpp" />
+    <ClCompile Include="Spike.cpp" />
+    <ClCompile Include="Switch.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\shaders\TerrainPS.hlsl">
@@ -269,12 +284,27 @@
     <None Include="Resources\shaders\Sprite.hlsli" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ArrowBullet.h" />
+    <ClInclude Include="ArrowEnemy.h" />
+    <ClInclude Include="BackgroundWall.h" />
     <ClInclude Include="Boomerang.h" />
+    <ClInclude Include="Boss.h" />
+    <ClInclude Include="CameraController.h" />
+    <ClInclude Include="Enemy.h" />
+    <ClInclude Include="Fade.h" />
+    <ClInclude Include="GameClearScene.h" />
+    <ClInclude Include="GameOverScene.h" />
     <ClInclude Include="GameScene.h" />
     <ClInclude Include="MapChipField.h" />
     <ClInclude Include="MathUtility.h" />
+    <ClInclude Include="MoveBlock.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="ShieldEnemy.h" />
+    <ClInclude Include="ShutterDoor.h" />
     <ClInclude Include="Skydome.h" />
+    <ClInclude Include="Spike.h" />
+    <ClInclude Include="Switch.h" />
+    <ClInclude Include="TitleScene.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
