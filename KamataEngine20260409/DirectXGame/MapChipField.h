@@ -27,6 +27,7 @@ enum class MapChipType
 	kJumpTutorial,    // T1
 	kAttackTutorial,  // T2
 	kDefenceTutorial, // T3
+	kPauseTutorial,   // T4
 };
 
 // マップチップの番号
@@ -125,6 +126,7 @@ public:
 	std::vector<KamataEngine::Vector3> GetJumpTutorialPositions() const;
 	std::vector<KamataEngine::Vector3> GetAttackTutorialPositions() const;
 	std::vector<KamataEngine::Vector3> GetDefenceTutorialPositions() const;
+	std::vector<KamataEngine::Vector3> GetPauseTutorialPositions() const;
 
 	bool HasBoss() const;
 

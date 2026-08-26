@@ -246,6 +246,11 @@ MapChipType MapChipField::ParseMapChipType(const std::string& word) const
 		return MapChipType::kDefenceTutorial;
 	}
 
+	if (word == "T4") 
+	{
+		return MapChipType::kPauseTutorial;
+	}
+
 	return MapChipType::kBlank;
 }
 
@@ -673,6 +678,28 @@ std::vector<Vector3> MapChipField::GetDefenceTutorialPositions() const
 		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
 		{
 			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kDefenceTutorial)
+			{
+				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
+			}
+		}
+	}
+
+	return positions;
+}
+
+std::vector<Vector3> MapChipField::GetPauseTutorialPositions() const 
+{
+	std::vector<Vector3> positions;
+
+	const int32_t numVertical = static_cast<int32_t>(GetNumBlockVertical());
+
+	const int32_t numHorizontal = static_cast<int32_t>(GetNumBlockHorizontal());
+
+	for (int32_t yIndex = 0; yIndex < numVertical; ++yIndex) 
+	{
+		for (int32_t xIndex = 0; xIndex < numHorizontal; ++xIndex)
+		{
+			if (GetMapChipTypeByIndex(xIndex, yIndex) == MapChipType::kPauseTutorial)
 			{
 				positions.push_back(GetMapChipPositionByIndex(static_cast<uint32_t>(xIndex), static_cast<uint32_t>(yIndex)));
 			}

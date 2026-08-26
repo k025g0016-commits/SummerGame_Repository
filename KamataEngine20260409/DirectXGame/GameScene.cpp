@@ -20,6 +20,7 @@
 #include "SparkParticle.h"
 #include <cstdlib>
 #include "DeathParticle.h"
+#include <numbers>
 
 using namespace KamataEngine;
 
@@ -350,9 +351,13 @@ void GameScene::Initialize()
 	jumpTutorialModel_ = Model::CreateFromOBJ("JumpTutorial", true);
 	attackTutorialModel_ = Model::CreateFromOBJ("AttackTutorial", true);
 	defenceTutorialModel_ = Model::CreateFromOBJ("DefenseTutorial", true);
+	pauseTutorialModel_ = Model::CreateFromOBJ("PauseTutorial", true);
 	ringEffectModel_ = Model::CreateFromOBJ("RingEffect", true);
 	sparkParticleModel_ = Model::CreateFromOBJ("SparkParticle", true);
 	deathParticleModel_ = Model::CreateFromOBJ("DeathParticle", true);
+	selectSwitchPlateModel_ = Model::CreateFromOBJ("SelectSwitchPlate", true);
+	returnToGameModel_ = Model::CreateFromOBJ("ReturnToGame", true);
+	returnToTitleModel_ = Model::CreateFromOBJ("ReturnToTitle", true);
 
 	// マップチップ生成
 	mapChipField_ = new MapChipField();
@@ -613,6 +618,96 @@ void GameScene::Initialize()
 		tutorials_.push_back(tutorial);
 	}
 
+	// ポーズチュートリアル T4
+	for (const Vector3& position : mapChipField_->GetPauseTutorialPositions()) 
+	{
+		Tutorial* tutorial = new Tutorial();
+
+		tutorial->Initialize(tutorialPlateModel_, pauseTutorialModel_, &camera_, position);
+
+		tutorials_.push_back(tutorial);
+	}
+
+	// ポーズ画面初期化
+	returnToGamePlateTransform_.Initialize();
+	returnToTitlePlateTransform_.Initialize();
+	returnToGameTransform_.Initialize();
+	returnToTitleTransform_.Initialize();
+	isReturnTitleBGMFadingOut_ = false;
+	returnTitleBGMFadeTimer_ = 0.0f;
+
+	// ポーズ時の暗転用スプライト
+	pauseDarkSprite_ = KamataEngine::Sprite::Create(KamataEngine::TextureManager::Load("white1x1.png"), {0.0f, 0.0f});
+
+	// 画面全体を覆う
+	pauseDarkSprite_->SetSize(KamataEngine::Vector2(1280.0f, 720.0f));
+
+	// 半透明の黒
+	pauseDarkSprite_->SetColor(KamataEngine::Vector4(0.0f, 0.0f, 0.0f, 0.5f));
+
+	// ポーズ画面専用カメラ
+	pauseCamera_.Initialize();
+	pauseCamera_.translation_ = {0.0f, 0.0f, -5.0f};
+	pauseCamera_.UpdateMatrix();
+
+	// ポーズメニューの配置
+	// ReturnToGame側のプレート
+	returnToGamePlateTransform_.translation_ = {0.0f, 0.75f, 0.0f};
+
+	// ReturnToTitle側のプレート
+	returnToTitlePlateTransform_.translation_ = {0.0f, -0.75f, 0.0f};
+
+	// ReturnToGame文字
+	// プレートより少しカメラ側へ
+	returnToGameTransform_.translation_ = {0.0f, 0.75f, -0.1f};
+
+	// ReturnToTitle文字
+	// プレートより少しカメラ側へ
+	returnToTitleTransform_.translation_ = {0.0f, -0.75f, -0.1f};
+
+	// --------------------
+	// ポーズメニューの角度
+	// --------------------
+
+	// カメラ側へ向ける
+	returnToGamePlateTransform_.rotation_.y = std::numbers::pi_v<float>;
+
+	returnToTitlePlateTransform_.rotation_.y = std::numbers::pi_v<float>;
+
+	returnToGameTransform_.rotation_.y = std::numbers::pi_v<float>;
+
+	returnToTitleTransform_.rotation_.y = std::numbers::pi_v<float>;
+
+	// --------------------
+	// ワールド行列
+	// --------------------
+
+	returnToGamePlateTransform_.matWorld_ = MakeAffineMatrix(returnToGamePlateTransform_.scale_, returnToGamePlateTransform_.rotation_, returnToGamePlateTransform_.translation_);
+
+	returnToTitlePlateTransform_.matWorld_ = MakeAffineMatrix(returnToTitlePlateTransform_.scale_, returnToTitlePlateTransform_.rotation_, returnToTitlePlateTransform_.translation_);
+
+	returnToGameTransform_.matWorld_ = MakeAffineMatrix(returnToGameTransform_.scale_, returnToGameTransform_.rotation_, returnToGameTransform_.translation_);
+
+	returnToTitleTransform_.matWorld_ = MakeAffineMatrix(returnToTitleTransform_.scale_, returnToTitleTransform_.rotation_, returnToTitleTransform_.translation_);
+
+	returnToGamePlateTransform_.TransferMatrix();
+	returnToTitlePlateTransform_.TransferMatrix();
+	returnToGameTransform_.TransferMatrix();
+	returnToTitleTransform_.TransferMatrix();
+
+	// ポーズ状態初期化
+	isPaused_ = false;
+	wasPauseKeyPressed_ = false;
+	isReturnTitleRequested_ = false;
+	pauseBlinkTimer_ = 0.0f;
+	isPauseSelectedTextVisible_ = true;
+
+	pauseMenuItem_ = PauseMenuItem::kReturnToGame;
+
+	wasPauseUpKeyPressed_ = false;
+	wasPauseDownKeyPressed_ = false;
+	wasPauseDecideKeyPressed_ = false;
+
 	Audio* audio = Audio::GetInstance();
 
 	gamePlayBGMHandle_ = audio->LoadWave("BGM/GamePlay.wav");
@@ -626,6 +721,8 @@ void GameScene::Initialize()
 	enemyDamageSEHandle_ = Audio::GetInstance()->LoadWave("SE/EnemyDamage.wav");
 	enemyDeathSEHandle_ = Audio::GetInstance()->LoadWave("SE/EnemyDeath.wav");
 	jumpSEHandle_ = Audio::GetInstance()->LoadWave("SE/Jamp.wav");
+	cursorSEHandle_ = Audio::GetInstance()->LoadWave("SE/Cursor.wav");
+	decisionSEHandle_ = Audio::GetInstance()->LoadWave("SE/Decision.wav");
 
 	gamePlayBGMVoiceHandle_ = audio->PlayWave(gamePlayBGMHandle_, true, 0.5f);
 
@@ -639,6 +736,192 @@ void GameScene::Initialize()
 void GameScene::Update()
 {
 	Input* input = Input::GetInstance();
+
+	// 現在ESCキーが押されているか
+	const bool isPauseKeyPressed = input->PushKey(DIK_ESCAPE);
+
+	// ESCを押した瞬間
+	if (isPauseKeyPressed && !wasPauseKeyPressed_ && !isReturnTitleBGMFadingOut_) 
+	{
+		isPaused_ = !isPaused_;
+
+		if (isPaused_) 
+		{
+			pauseMenuItem_ = PauseMenuItem::kReturnToGame;
+
+			wasPauseUpKeyPressed_ = false;
+			wasPauseDownKeyPressed_ = false;
+			wasPauseDecideKeyPressed_ = false;
+
+			// ポーズした瞬間にゲーム中SEを停止
+			StopGameSEs();
+		}
+	}
+
+	// 次フレーム用に保存
+	wasPauseKeyPressed_ = isPauseKeyPressed;
+
+	// ポーズ中ならゲーム本体を更新しない
+	if (isPaused_) 
+	{
+		// 上入力
+		const bool isUpKeyPressed = input->PushKey(DIK_W) || input->PushKey(DIK_UP);
+
+		// 下入力
+		const bool isDownKeyPressed = input->PushKey(DIK_S) || input->PushKey(DIK_DOWN);
+
+		// 決定入力
+		const bool isDecideKeyPressed = input->PushKey(DIK_SPACE);
+
+		// 上を押した瞬間
+		if (!isReturnTitleBGMFadingOut_ && isUpKeyPressed && !wasPauseUpKeyPressed_ && pauseMenuItem_ != PauseMenuItem::kReturnToGame)
+		{
+			pauseMenuItem_ = PauseMenuItem::kReturnToGame;
+
+			pauseBlinkTimer_ = 0.0f;
+			isPauseSelectedTextVisible_ = true;
+
+			Audio::GetInstance()->PlayWave(cursorSEHandle_, false, 0.5f);
+		}
+
+	    // 下を押した瞬間
+		if (!isReturnTitleBGMFadingOut_ && isDownKeyPressed && !wasPauseDownKeyPressed_ && pauseMenuItem_ != PauseMenuItem::kReturnToTitle) 
+		{
+			pauseMenuItem_ = PauseMenuItem::kReturnToTitle;
+
+			pauseBlinkTimer_ = 0.0f;
+			isPauseSelectedTextVisible_ = true;
+
+			Audio::GetInstance()->PlayWave(cursorSEHandle_, false, 0.5f);
+		}
+
+		// SPACEを押した瞬間
+		if (!isReturnTitleBGMFadingOut_ && isDecideKeyPressed && !wasPauseDecideKeyPressed_) 
+		{
+			// 決定SE
+			Audio::GetInstance()->PlayWave(decisionSEHandle_, false, 0.5f);
+
+			if (pauseMenuItem_ == PauseMenuItem::kReturnToGame)
+			{
+				// ゲームへ戻る
+				isPaused_ = false;
+
+				pauseBlinkTimer_ = 0.0f;
+				isPauseSelectedTextVisible_ = true;
+			}
+			else if (pauseMenuItem_ == PauseMenuItem::kReturnToTitle)
+			{
+				// BGMフェードアウト開始
+				isReturnTitleBGMFadingOut_ = true;
+				returnTitleBGMFadeTimer_ = 0.0f;
+			}
+		}
+
+		// タイトルへ戻る時のBGMフェードアウト
+		if (isReturnTitleBGMFadingOut_)
+		{
+			constexpr float kDeltaTime = 1.0f / 60.0f;
+
+			returnTitleBGMFadeTimer_ += kDeltaTime;
+
+			float progress = returnTitleBGMFadeTimer_ / kReturnTitleBGMFadeDuration;
+
+			if (progress > 1.0f) 
+			{
+				progress = 1.0f;
+			}
+
+			const float volume = 0.5f * (1.0f - progress);
+
+			// 通常BGM
+			if (gamePlayBGMVoiceHandle_ != 0)
+			{
+				Audio::GetInstance()->SetVolume(gamePlayBGMVoiceHandle_, volume);
+			}
+
+			// ボスBGM
+			if (bossBGMVoiceHandle_ != 0)
+			{
+				Audio::GetInstance()->SetVolume(bossBGMVoiceHandle_, volume);
+			}
+
+			// フェード終了
+			if (returnTitleBGMFadeTimer_ >= kReturnTitleBGMFadeDuration)
+			{
+				if (gamePlayBGMVoiceHandle_ != 0) 
+				{
+					Audio::GetInstance()->StopWave(gamePlayBGMVoiceHandle_);
+
+					gamePlayBGMVoiceHandle_ = 0;
+				}
+
+				if (bossBGMVoiceHandle_ != 0)
+				{
+					Audio::GetInstance()->StopWave(bossBGMVoiceHandle_);
+
+					bossBGMVoiceHandle_ = 0;
+				}
+
+				isReturnTitleBGMFadingOut_ = false;
+
+				// BGM停止後にmain.cppへ通知
+				isReturnTitleRequested_ = true;
+			}
+		}
+
+		// 次フレーム用
+		wasPauseUpKeyPressed_ = isUpKeyPressed;
+		wasPauseDownKeyPressed_ = isDownKeyPressed;
+		wasPauseDecideKeyPressed_ = isDecideKeyPressed;
+
+		// 一度通常サイズに戻す
+		returnToGamePlateTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+
+		returnToTitlePlateTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+
+		returnToGameTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+
+		returnToTitleTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+
+		// 選択中だけ少し大きくする
+		if (pauseMenuItem_ == PauseMenuItem::kReturnToGame) 
+		{
+			returnToGamePlateTransform_.scale_ = {1.1f, 1.1f, 1.1f};
+
+			returnToGameTransform_.scale_ = {1.1f, 1.1f, 1.1f};
+		} 
+		else 
+		{
+			returnToTitlePlateTransform_.scale_ = {1.1f, 1.1f, 1.1f};
+
+			returnToTitleTransform_.scale_ = {1.1f, 1.1f, 1.1f};
+		}
+
+		// 行列更新
+		returnToGamePlateTransform_.matWorld_ = MakeAffineMatrix(returnToGamePlateTransform_.scale_, returnToGamePlateTransform_.rotation_, returnToGamePlateTransform_.translation_);
+
+		returnToTitlePlateTransform_.matWorld_ = MakeAffineMatrix(returnToTitlePlateTransform_.scale_, returnToTitlePlateTransform_.rotation_, returnToTitlePlateTransform_.translation_);
+
+		returnToGameTransform_.matWorld_ = MakeAffineMatrix(returnToGameTransform_.scale_, returnToGameTransform_.rotation_, returnToGameTransform_.translation_);
+
+		returnToTitleTransform_.matWorld_ = MakeAffineMatrix(returnToTitleTransform_.scale_, returnToTitleTransform_.rotation_, returnToTitleTransform_.translation_);
+
+		returnToGamePlateTransform_.TransferMatrix();
+		returnToTitlePlateTransform_.TransferMatrix();
+		returnToGameTransform_.TransferMatrix();
+		returnToTitleTransform_.TransferMatrix();
+
+		// 選択中の文字を点滅
+		pauseBlinkTimer_ += 1.0f / 60.0f;
+
+		if (pauseBlinkTimer_ >= kPauseBlinkInterval)
+		{
+			pauseBlinkTimer_ = 0.0f;
+			isPauseSelectedTextVisible_ = !isPauseSelectedTextVisible_;
+		}
+
+		return;
+	}
 
 	// プレイヤー更新
 	player_->Update();
@@ -718,8 +1001,13 @@ void GameScene::Update()
 			// カメラをボスエリア内に制限
 			cameraController_->SetBossArea(bossAreaLeft_, bossAreaRight_, bossAreaBottom_, bossAreaTop_);
 
-			// 通常BGMを停止
-			Audio::GetInstance()->StopWave(gamePlayBGMVoiceHandle_);
+		    // 通常BGMを停止
+			if (gamePlayBGMVoiceHandle_ != 0)
+			{
+				Audio::GetInstance()->StopWave(gamePlayBGMVoiceHandle_);
+
+				gamePlayBGMVoiceHandle_ = 0;
+			}
 
 			// ボスBGMをループ再生
 			bossBGMVoiceHandle_ = Audio::GetInstance()->PlayWave(bossBGMHandle_, true, 0.5f);
@@ -2625,6 +2913,23 @@ GameScene::~GameScene()
 		isBossDashSEPlaying_ = false;
 	}
 
+	delete pauseTutorialModel_;
+	pauseTutorialModel_ = nullptr;
+
+	// ポーズメニュー用モデル
+	delete selectSwitchPlateModel_;
+	selectSwitchPlateModel_ = nullptr;
+
+	delete returnToGameModel_;
+	returnToGameModel_ = nullptr;
+
+	delete returnToTitleModel_;
+	returnToTitleModel_ = nullptr;
+
+	// ポーズ暗転用スプライト
+	delete pauseDarkSprite_;
+	pauseDarkSprite_ = nullptr;
+
 }
 
 void GameScene::GenerateBlocks()
@@ -2760,5 +3065,44 @@ void GameScene::StopGameSEs()
 
 		bossDashVoiceHandle_ = 0;
 		isBossDashSEPlaying_ = false;
+	}
+}
+
+void GameScene::DrawPauseDark()
+{
+	if (!isPaused_ || pauseDarkSprite_ == nullptr)
+	{
+		return;
+	}
+
+	Sprite::PreDraw();
+
+	pauseDarkSprite_->Draw();
+
+	Sprite::PostDraw();
+}
+
+void GameScene::DrawPauseMenu()
+{
+	if (!isPaused_)
+	{
+		return;
+	}
+
+	// プレート
+	selectSwitchPlateModel_->Draw(returnToGamePlateTransform_, pauseCamera_);
+
+	selectSwitchPlateModel_->Draw(returnToTitlePlateTransform_, pauseCamera_);
+
+	// ReturnToGame
+	if (pauseMenuItem_ != PauseMenuItem::kReturnToGame || isPauseSelectedTextVisible_) 
+	{
+		returnToGameModel_->Draw(returnToGameTransform_, pauseCamera_);
+	}
+
+	// ReturnToTitle
+	if (pauseMenuItem_ != PauseMenuItem::kReturnToTitle || isPauseSelectedTextVisible_)
+	{
+		returnToTitleModel_->Draw(returnToTitleTransform_, pauseCamera_);
 	}
 }

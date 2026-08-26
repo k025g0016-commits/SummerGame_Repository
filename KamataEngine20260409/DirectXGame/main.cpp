@@ -99,14 +99,27 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 				break;
 			}
 
-			case Scene::kGame: 
+			case Scene::kGame:
 			{
 				if (gameScene != nullptr) 
 				{
 					gameScene->Update();
 
+					// ポーズメニューからタイトルへ戻る
+					if (gameScene->IsReturnTitleRequested())
+					{
+						nextScene = Scene::kTitle;
+
+						// 黒フェード
+						fadeColor = {0.0f, 0.0f, 0.0f, 1.0f};
+
+						fade->Start(Fade::Status::FadeOut, 0.5f, fadeColor);
+
+						isSceneChanging = true;
+					}
+
 					// ゲームオーバー
-					if (gameScene->IsGameOver())
+					else if (gameScene->IsGameOver())
 					{
 						nextScene = Scene::kGameOver;
 
@@ -119,7 +132,7 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 					}
 
 					// ゲームクリア
-					else if (gameScene->IsGameClear()) 
+					else if (gameScene->IsGameClear())
 					{
 						nextScene = Scene::kGameClear;
 
@@ -253,10 +266,11 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 			break;
 		}
 
-		case Scene::kGame: 
+		case Scene::kGame:
 		{
-			if (gameScene != nullptr) 
+			if (gameScene != nullptr)
 			{
+				// ゲーム本体
 				gameScene->Draw();
 			}
 
@@ -279,7 +293,22 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 		// 3Dモデル描画終了
 		Model::PostDraw();
 
-		// フェード描画
+		// ゲームシーンのポーズ表示
+		if (currentScene == Scene::kGame && gameScene != nullptr)
+		{
+			// 半透明の黒を描画
+			gameScene->DrawPauseDark();
+
+			// ゲーム本体の深度情報を消す
+			dxCommon->ClearDepthBuffer();
+
+			// ポーズメニューを3D描画
+			Model::PreDraw();
+
+			gameScene->DrawPauseMenu();
+
+			Model::PostDraw();
+		}
 
 		// 必ずシーン本体より後に描画する
 		fade->Draw();

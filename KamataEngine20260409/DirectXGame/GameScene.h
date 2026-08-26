@@ -52,6 +52,18 @@ public:
 		return isGameClear_; 
 	}
 
+	// タイトルへ戻る要求が出ているか
+	bool IsReturnTitleRequested() const 
+	{
+		return isReturnTitleRequested_;
+	}
+
+	// ポーズ時の暗転描画
+	void DrawPauseDark();
+
+	// ポーズメニュー描画
+	void DrawPauseMenu();
+
 private:
 	// ブロックの生成
 	void GenerateBlocks();
@@ -123,6 +135,12 @@ private:
 	KamataEngine::Model* jumpTutorialModel_ = nullptr;
 	KamataEngine::Model* attackTutorialModel_ = nullptr;
 	KamataEngine::Model* defenceTutorialModel_ = nullptr;
+	KamataEngine::Model* pauseTutorialModel_ = nullptr;
+
+	// ポーズ画面モデル
+	KamataEngine::Model* selectSwitchPlateModel_ = nullptr;
+	KamataEngine::Model* returnToGameModel_ = nullptr;
+	KamataEngine::Model* returnToTitleModel_ = nullptr;
 
 	// リングエフェクトモデル
 	KamataEngine::Model* ringEffectModel_ = nullptr;
@@ -315,5 +333,63 @@ private:
 
 	// ジャンプSE
 	uint32_t jumpSEHandle_ = 0;
+
+	// ポーズメニューカーソルSE
+	uint32_t cursorSEHandle_ = 0;
+
+	// ポーズメニュー決定SE
+	uint32_t decisionSEHandle_ = 0;
+
+	// ポーズ中か
+	bool isPaused_ = false;
+
+	// 前フレームでESCキーが押されていたか
+	bool wasPauseKeyPressed_ = false;
+
+	// タイトルへ戻る要求
+	bool isReturnTitleRequested_ = false;
+
+	// ポーズメニューの選択項目
+	enum class PauseMenuItem
+	{
+		kReturnToGame,
+		kReturnToTitle,
+	};
+
+	// 現在選択中の項目
+	PauseMenuItem pauseMenuItem_ = PauseMenuItem::kReturnToGame;
+
+	// ポーズメニュー入力
+	bool wasPauseUpKeyPressed_ = false;
+	bool wasPauseDownKeyPressed_ = false;
+	bool wasPauseDecideKeyPressed_ = false;
+
+	// ポーズ画面のワールド変換
+	KamataEngine::WorldTransform returnToGamePlateTransform_;
+	KamataEngine::WorldTransform returnToTitlePlateTransform_;
+	KamataEngine::WorldTransform returnToGameTransform_;
+	KamataEngine::WorldTransform returnToTitleTransform_;
+
+	// ポーズ画面専用カメラ
+	KamataEngine::Camera pauseCamera_;
+
+	// ポーズメニュー文字の点滅
+	float pauseBlinkTimer_ = 0.0f;
+	bool isPauseSelectedTextVisible_ = true;
+
+	// 点滅間隔
+	static inline const float kPauseBlinkInterval = 0.4f;
+
+	// タイトルへ戻る時のBGMフェード中か
+	bool isReturnTitleBGMFadingOut_ = false;
+
+	// タイトルへ戻る時のBGMフェード時間
+	float returnTitleBGMFadeTimer_ = 0.0f;
+
+	// フェード時間
+	static inline const float kReturnTitleBGMFadeDuration = 0.5f;
+
+	// ポーズ時の暗転用スプライト
+	KamataEngine::Sprite* pauseDarkSprite_ = nullptr;
 
 };
