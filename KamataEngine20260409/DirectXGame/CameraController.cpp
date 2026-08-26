@@ -1,6 +1,5 @@
 #include "CameraController.h"
 #include "Player.h"
-
 #include <algorithm>
 
 using namespace KamataEngine;
@@ -66,11 +65,40 @@ void CameraController::Update()
 	camera_->UpdateMatrix();
 }
 
-void CameraController::SetBossArea(float left, float right) 
+void CameraController::SetBossArea(float left, float right, float bottom, float top)
 {
-	constexpr float kViewHalfWidth = 8.0f;
+	constexpr float kViewHalfWidth = 10.0f;
+	constexpr float kViewHalfHeight = 5.5f;
 
-	movableArea_.left = left + kViewHalfWidth;
+	// カメラ中心が移動できる範囲
+	float cameraLeft = left + kViewHalfWidth;
+	float cameraRight = right - kViewHalfWidth;
 
-	movableArea_.right = right - kViewHalfWidth;
+	float cameraBottom = bottom + kViewHalfHeight;
+	float cameraTop = top - kViewHalfHeight;
+
+	// 横幅が画面より狭い場合
+	if (cameraLeft > cameraRight) 
+	{
+		// ボスエリア中央にカメラを固定
+		const float centerX = (left + right) / 2.0f;
+
+		cameraLeft = centerX;
+		cameraRight = centerX;
+	}
+
+	// 縦幅が画面より狭い場合
+	if (cameraBottom > cameraTop) 
+	{
+		// ボスエリア中央にカメラを固定
+		const float centerY = (bottom + top) / 2.0f;
+
+		cameraBottom = centerY;
+		cameraTop = centerY;
+	}
+
+	movableArea_.left = cameraLeft;
+	movableArea_.right = cameraRight;
+	movableArea_.bottom = cameraBottom;
+	movableArea_.top = cameraTop;
 }

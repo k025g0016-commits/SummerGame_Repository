@@ -15,14 +15,30 @@
 #include "Spike.h"
 #include "Boss.h"
 #include "BackGroundWall.h"
+#include "Tutorial.h"
+#include "RingEffect.h"
+#include "SparkParticle.h"
+#include <cstdlib>
+#include "DeathParticle.h"
 
 using namespace KamataEngine;
 
 namespace 
 {
 // ガード成功時に敵を押し返す距離
-constexpr float kGuardPushBackDistance = 0.3f;
+constexpr float kGuardPushBackDistance = 0.5f;
+
+// 突進ガード時のプレイヤー後退距離
 constexpr float kChargePlayerPushBackDistance = 0.35f;
+
+// ボスの剣攻撃をガードした時の後退距離
+constexpr float kBossSwordGuardPushBackDistance = 0.35f;
+
+// ボスの回転攻撃をガードした時の後退距離
+constexpr float kBossSpinGuardPushBackDistance = 0.5f;
+
+// ボスの突進をガードした時の後退量
+constexpr float kBossChargeGuardPushBackDistance = 0.5f;
 
 // 敵とブーメランの接触判定
 bool IsEnemyBoomerangCollision(const Vector3& enemyPosition, const Vector3& boomerangPosition)
@@ -135,6 +151,42 @@ bool IsPlayerShutterDoorCollision(const Vector3& playerPosition, const Vector3& 
 	return distanceX <= kPlayerHalfWidth + kDoorHalfWidth && distanceY <= kPlayerHalfHeight + kDoorHalfHeight;
 }
 
+// 敵とシャッタードアの接触判定
+bool IsEnemyShutterDoorCollision(const Vector3& enemyPosition, const Vector3& doorPosition)
+{
+	// 敵の当たり判定の半分
+	constexpr float kEnemyHalfWidth = 0.4f;
+	constexpr float kEnemyHalfHeight = 0.4f;
+
+	// シャッタードアの当たり判定の半分
+	constexpr float kDoorHalfWidth = 0.5f;
+	constexpr float kDoorHalfHeight = 0.5f;
+
+	const float distanceX = std::abs(enemyPosition.x - doorPosition.x);
+
+	const float distanceY = std::abs(enemyPosition.y - doorPosition.y);
+
+	return distanceX <= kEnemyHalfWidth + kDoorHalfWidth && distanceY <= kEnemyHalfHeight + kDoorHalfHeight;
+}
+
+// ArrowBulletとシャッタードアの接触判定
+bool IsArrowBulletShutterDoorCollision(const Vector3& bulletPosition, const Vector3& doorPosition) 
+{
+	// 弾の当たり判定の半分
+	constexpr float kBulletHalfWidth = 0.2f;
+	constexpr float kBulletHalfHeight = 0.2f;
+
+	// シャッタードアの当たり判定の半分
+	constexpr float kDoorHalfWidth = 0.5f;
+	constexpr float kDoorHalfHeight = 0.5f;
+
+	const float distanceX = std::abs(bulletPosition.x - doorPosition.x);
+
+	const float distanceY = std::abs(bulletPosition.y - doorPosition.y);
+
+	return distanceX <= kBulletHalfWidth + kDoorHalfWidth && distanceY <= kBulletHalfHeight + kDoorHalfHeight;
+}
+
 // プレイヤーがMoveBlockの上に乗っているか
 bool IsPlayerOnMoveBlock(const Vector3& playerPosition, const Vector3& moveBlockPosition)
 {
@@ -240,6 +292,24 @@ bool IsBoomerangMoveBlockCollision(const Vector3& boomerangPosition, const Vecto
 	return distanceX <= kBoomerangHalfWidth + kMoveBlockHalfWidth && distanceY <= kBoomerangHalfHeight + kMoveBlockHalfHeight;
 }
 
+// ArrowBulletとMoveBlockの接触判定
+bool IsArrowBulletMoveBlockCollision(const Vector3& bulletPosition, const Vector3& moveBlockPosition)
+{
+	// 弾の当たり判定の半分
+	constexpr float kBulletHalfWidth = 0.2f;
+	constexpr float kBulletHalfHeight = 0.2f;
+
+	// MoveBlockの当たり判定の半分
+	constexpr float kMoveBlockHalfWidth = 0.5f;
+	constexpr float kMoveBlockHalfHeight = 0.5f;
+
+	const float distanceX = std::abs(bulletPosition.x - moveBlockPosition.x);
+
+	const float distanceY = std::abs(bulletPosition.y - moveBlockPosition.y);
+
+	return distanceX <= kBulletHalfWidth + kMoveBlockHalfWidth && distanceY <= kBulletHalfHeight + kMoveBlockHalfHeight;
+}
+
 } // namespace
 
 void GameScene::Initialize() 
@@ -261,7 +331,7 @@ void GameScene::Initialize()
 	arrowEnemyModel_ = Model::CreateFromOBJ("ArrowEnemy", true);
 	arrowModel_ = Model::CreateFromOBJ("Arrow", true);
 	arrowBulletModel_ = Model::CreateFromOBJ("ArrowBullet", true);
-	boomerangModel_ = Model::CreateFromOBJ("ring", true);
+	boomerangModel_ = Model::CreateFromOBJ("Shild", true);
 	skyDomeModel_ = Model::CreateFromOBJ("SkyDome", true);
 	shieldEnemyModel_ = Model::CreateFromOBJ("ShieldEnemy", true);
 	enemyShieldModel_ = Model::CreateFromOBJ("E_Shield", true);
@@ -275,11 +345,19 @@ void GameScene::Initialize()
 	bossSwordModel_ = Model::CreateFromOBJ("BossSword", true);
 	crossbowModel_ = Model::CreateFromOBJ("Crossbow", true);
 	backGroundWallModel_ = Model::CreateFromOBJ("BackgroundWall", true);
+	tutorialPlateModel_ = Model::CreateFromOBJ("TutorialPlate", true);
+	moveTutorialModel_ = Model::CreateFromOBJ("MoveTutorial", true);
+	jumpTutorialModel_ = Model::CreateFromOBJ("JumpTutorial", true);
+	attackTutorialModel_ = Model::CreateFromOBJ("AttackTutorial", true);
+	defenceTutorialModel_ = Model::CreateFromOBJ("DefenseTutorial", true);
+	ringEffectModel_ = Model::CreateFromOBJ("RingEffect", true);
+	sparkParticleModel_ = Model::CreateFromOBJ("SparkParticle", true);
+	deathParticleModel_ = Model::CreateFromOBJ("DeathParticle", true);
 
 	// マップチップ生成
 	mapChipField_ = new MapChipField();
 
-	mapChipField_->LoadMapChipCsv("Resources/MapChip/TestMap.csv");
+	mapChipField_->LoadMapChipCsv("Resources/MapChip/SummerGameStage.csv");
 
 	// ブロック生成
 	GenerateBlocks();
@@ -332,25 +410,26 @@ void GameScene::Initialize()
 		shieldEnemies_.push_back(shieldEnemy);
 	}
 
-	const std::vector<Vector3> switchPositions = mapChipField_->GetSwitchPositions();
+	// スイッチ生成
+	const std::vector<MapChipGroupData> switchDataList = mapChipField_->GetSwitchGroupData();
 
-	for (const Vector3& position : switchPositions) 
+	for (const MapChipGroupData& data : switchDataList) 
 	{
 		Switch* switchObject = new Switch();
 
-		switchObject->Initialize(switchModel_, &camera_, position);
+		switchObject->Initialize(switchModel_, &camera_, data.position, data.groupId);
 
 		switches_.push_back(switchObject);
 	}
 
-	// シャッタードアの生成
-	const std::vector<Vector3> shutterDoorPositions = mapChipField_->GetShutterDoorPositions();
+	// シャッタードア生成
+	const std::vector<MapChipGroupData> shutterDoorDataList = mapChipField_->GetShutterDoorGroupData();
 
-	for (const Vector3& position : shutterDoorPositions) 
+	for (const MapChipGroupData& data : shutterDoorDataList) 
 	{
 		ShutterDoor* shutterDoor = new ShutterDoor();
 
-		shutterDoor->Initialize(shutterDoorModel_, &camera_, position);
+		shutterDoor->Initialize(shutterDoorModel_, &camera_, data.position, data.groupId);
 
 		shutterDoors_.push_back(shutterDoor);
 	}
@@ -418,23 +497,28 @@ void GameScene::Initialize()
 	}
 
 	// ボス生成
-	boss_ = new Boss();
+	if (mapChipField_->HasBoss()) 
+	{
+		boss_ = new Boss();
 
-	boss_->Initialize(bossModel_, bossSwordModel_, crossbowModel_, &camera_, mapChipField_->GetBossPosition(), player_);
+		boss_->Initialize(bossModel_, bossSwordModel_, crossbowModel_, &camera_, mapChipField_->GetBossPosition(), player_);
 
-	boss_->SetMapChipField(mapChipField_);
+		boss_->SetMapChipField(mapChipField_);
 
-	bossAreaPositions_ = mapChipField_->GetBossAreaPositions();
+		bossAreaPositions_ = mapChipField_->GetBossAreaPositions();
+	}
 
-	// A0が2つ以上ある場合、左右の境界を求める
-	if (bossAreaPositions_.size() >= 2)
+	// A0が2つ以上ある場合、矩形の境界を求める
+	if (bossAreaPositions_.size() >= 2) 
 	{
 		bossAreaLeft_ = bossAreaPositions_[0].x;
 		bossAreaRight_ = bossAreaPositions_[0].x;
+		bossAreaBottom_ = bossAreaPositions_[0].y;
+		bossAreaTop_ = bossAreaPositions_[0].y;
 
-		for (const Vector3& position : bossAreaPositions_) 
+		for (const Vector3& position : bossAreaPositions_)
 		{
-			if (position.x < bossAreaLeft_)
+			if (position.x < bossAreaLeft_) 
 			{
 				bossAreaLeft_ = position.x;
 			}
@@ -442,6 +526,16 @@ void GameScene::Initialize()
 			if (position.x > bossAreaRight_) 
 			{
 				bossAreaRight_ = position.x;
+			}
+
+			if (position.y < bossAreaBottom_) 
+			{
+				bossAreaBottom_ = position.y;
+			}
+
+			if (position.y > bossAreaTop_)
+			{
+				bossAreaTop_ = position.y;
 			}
 		}
 	}
@@ -453,10 +547,10 @@ void GameScene::Initialize()
 	cameraController_ = new CameraController();
 
 	// 通常時のカメラ移動可能範囲
-	normalCameraArea_.left = 0.0f;
-	normalCameraArea_.right = static_cast<float>(mapChipField_->GetNumBlockHorizontal() - 1);
-	normalCameraArea_.bottom = 0.0f;
-	normalCameraArea_.top = 10.0f;
+	normalCameraArea_.left = 10.5f;
+	normalCameraArea_.right = static_cast<float>(mapChipField_->GetNumBlockHorizontal() - 1) - 10.5f;
+	normalCameraArea_.bottom = 5.5f;
+	normalCameraArea_.top = 50.0f;
 
 	cameraController_->SetMovableArea(normalCameraArea_);
 
@@ -479,6 +573,67 @@ void GameScene::Initialize()
 
 	backGroundWall_->Initialize(backGroundWallModel_, &camera_);
 
+	// 移動チュートリアル T0
+	for (const Vector3& position : mapChipField_->GetMoveTutorialPositions())
+	{
+		Tutorial* tutorial = new Tutorial();
+
+		tutorial->Initialize(tutorialPlateModel_, moveTutorialModel_, &camera_, position);
+
+		tutorials_.push_back(tutorial);
+	}
+
+	// ジャンプチュートリアル T1
+	for (const Vector3& position : mapChipField_->GetJumpTutorialPositions())
+	{
+		Tutorial* tutorial = new Tutorial();
+
+		tutorial->Initialize(tutorialPlateModel_, jumpTutorialModel_, &camera_, position);
+
+		tutorials_.push_back(tutorial);
+	}
+
+	// 攻撃チュートリアル T2
+	for (const Vector3& position : mapChipField_->GetAttackTutorialPositions()) 
+	{
+		Tutorial* tutorial = new Tutorial();
+
+		tutorial->Initialize(tutorialPlateModel_, attackTutorialModel_, &camera_, position);
+
+		tutorials_.push_back(tutorial);
+	}
+
+	// 防御チュートリアル T3
+	for (const Vector3& position : mapChipField_->GetDefenceTutorialPositions())
+	{
+		Tutorial* tutorial = new Tutorial();
+
+		tutorial->Initialize(tutorialPlateModel_, defenceTutorialModel_, &camera_, position);
+
+		tutorials_.push_back(tutorial);
+	}
+
+	Audio* audio = Audio::GetInstance();
+
+	gamePlayBGMHandle_ = audio->LoadWave("BGM/GamePlay.wav");
+	bossBGMHandle_ = audio->LoadWave("BGM/Boss.wav");
+	guardSEHandle_ = Audio::GetInstance()->LoadWave("SE/Guard.wav");
+	shotSEHandle_ = Audio::GetInstance()->LoadWave("SE/Shot.wav");
+	swordAttackSEHandle_ = Audio::GetInstance()->LoadWave("SE/SwordAttack.wav");
+	dashSEHandle_ = Audio::GetInstance()->LoadWave("SE/Dash.wav");
+	switchSEHandle_ = Audio::GetInstance()->LoadWave("SE/Switch.wav");
+	playerDeathSEHandle_ = Audio::GetInstance()->LoadWave("SE/PlayerDeath.wav");
+	enemyDamageSEHandle_ = Audio::GetInstance()->LoadWave("SE/EnemyDamage.wav");
+	enemyDeathSEHandle_ = Audio::GetInstance()->LoadWave("SE/EnemyDeath.wav");
+	jumpSEHandle_ = Audio::GetInstance()->LoadWave("SE/Jamp.wav");
+
+	gamePlayBGMVoiceHandle_ = audio->PlayWave(gamePlayBGMHandle_, true, 0.5f);
+
+	shieldEnemyDashVoiceHandles_.clear();
+
+	bossDashVoiceHandle_ = 0;
+	isBossDashSEPlaying_ = false;
+
 }
 
 void GameScene::Update()
@@ -488,24 +643,87 @@ void GameScene::Update()
 	// プレイヤー更新
 	player_->Update();
 
-	// プレイヤーが死亡したらゲームオーバー
+	// ジャンプSE再生要求
+	if (player_->IsJumpSERequested())
+	{
+		PlayGameSE(jumpSEHandle_, false, 0.5f);
+
+		player_->ClearJumpSERequest();
+	}
+
+	// プレイヤー死亡時
 	if (player_->IsDead())
 	{
-		isGameOver_ = true;
+		// 死亡した瞬間に1度だけ生成
+		if (!isDeathEffectStarted_)
+		{
+			isDeathEffectStarted_ = true;
+
+			// PlayerDeath以外のSEを停止
+			StopGameSEs();
+
+			// プレイヤー死亡SE
+			Audio::GetInstance()->PlayWave(playerDeathSEHandle_, false, 0.5f);
+
+			deathParticle_ = new DeathParticle();
+
+			deathParticle_->Initialize(deathParticleModel_, &camera_, player_->GetWorldPosition());
+		}
+
+		// 死亡パーティクル更新
+		if (deathParticle_ != nullptr)
+		{
+			deathParticle_->Update();
+
+			// 演出終了後にゲームオーバー
+			if (deathParticle_->IsFinished())
+			{
+				// 通常BGMを停止
+				if (gamePlayBGMVoiceHandle_ != 0)
+				{
+					Audio::GetInstance()->StopWave(gamePlayBGMVoiceHandle_);
+					gamePlayBGMVoiceHandle_ = 0;
+				}
+
+				// ボスBGMを停止
+				if (bossBGMVoiceHandle_ != 0) 
+				{
+					Audio::GetInstance()->StopWave(bossBGMVoiceHandle_);
+					bossBGMVoiceHandle_ = 0;
+				}
+
+				// PlayerDeath以外のゲーム中SEを停止
+				StopGameSEs();
+
+				isGameOver_ = true;
+			}
+		}
+
 		return;
 	}
 
 	// ボスエリア侵入判定
-	if (!isBossAreaEntered_ && player_ != nullptr && !player_->IsDead()) 
+	if (!isBossAreaEntered_ && boss_ != nullptr && player_ != nullptr && !player_->IsDead())
 	{
 		const Vector3 playerPosition = player_->GetWorldPosition();
 
-		if (playerPosition.x >= bossAreaLeft_ && playerPosition.x <= bossAreaRight_) 
+		const bool isInsideBossAreaX = playerPosition.x >= bossAreaLeft_ && playerPosition.x <= bossAreaRight_;
+
+		const bool isInsideBossAreaY = playerPosition.y >= bossAreaBottom_ && playerPosition.y <= bossAreaTop_;
+
+		if (isInsideBossAreaX && isInsideBossAreaY) 
 		{
 			isBossAreaEntered_ = true;
 
 			// カメラをボスエリア内に制限
-			cameraController_->SetBossArea(bossAreaLeft_, bossAreaRight_);
+			cameraController_->SetBossArea(bossAreaLeft_, bossAreaRight_, bossAreaBottom_, bossAreaTop_);
+
+			// 通常BGMを停止
+			Audio::GetInstance()->StopWave(gamePlayBGMVoiceHandle_);
+
+			// ボスBGMをループ再生
+			bossBGMVoiceHandle_ = Audio::GetInstance()->PlayWave(bossBGMHandle_, true, 0.5f);
+
 		}
 	}
 
@@ -521,6 +739,15 @@ void GameScene::Update()
 		}
 
 		enemy->Update();
+
+		// 剣攻撃SE
+		if (enemy->IsSwordAttackRequested()) 
+		{
+			PlayGameSE(swordAttackSEHandle_, false, 0.5f);
+
+			enemy->ClearSwordAttackRequest();
+		}
+
 	}
 
 	// 遠距離敵の更新
@@ -543,6 +770,31 @@ void GameScene::Update()
 		}
 
 		shieldEnemy->Update();
+
+		// 突進中
+		if (shieldEnemy->IsCharging()) 
+		{
+			// まだこの敵の突進SEを再生していなければ開始
+			if (shieldEnemyDashVoiceHandles_.find(shieldEnemy) == shieldEnemyDashVoiceHandles_.end())
+			{
+				const uint32_t voiceHandle = Audio::GetInstance()->PlayWave(dashSEHandle_, true, 0.5f);
+
+				shieldEnemyDashVoiceHandles_[shieldEnemy] = voiceHandle;
+			}
+		} 
+		else 
+		{
+			// 突進が終了したのでSE停止
+			auto it = shieldEnemyDashVoiceHandles_.find(shieldEnemy);
+
+			if (it != shieldEnemyDashVoiceHandles_.end()) 
+			{
+				Audio::GetInstance()->StopWave(it->second);
+
+				shieldEnemyDashVoiceHandles_.erase(it);
+			}
+		}
+
 	}
 
 	// スイッチ更新
@@ -556,34 +808,32 @@ void GameScene::Update()
 		switchObject->Update();
 	}
 
-	// スイッチがONになっているか確認
-	bool isAnySwitchOn = false;
-
+	// ONになっているSwitchと同じグループのShutterDoorだけ開く
 	for (Switch* switchObject : switches_)
 	{
-		if (switchObject == nullptr) 
+		if (switchObject == nullptr)
 		{
 			continue;
 		}
 
-		if (switchObject->IsOn()) 
+		// OFFなら何もしない
+		if (!switchObject->IsOn()) 
 		{
-			isAnySwitchOn = true;
-			break;
+			continue;
 		}
-	}
 
-	// スイッチがONならシャッタードアを開く
-	if (isAnySwitchOn)
-	{
-		for (ShutterDoor* shutterDoor : shutterDoors_) 
+		for (ShutterDoor* shutterDoor : shutterDoors_)
 		{
-			if (shutterDoor == nullptr) 
+			if (shutterDoor == nullptr)
 			{
 				continue;
 			}
 
-			shutterDoor->Open();
+			// 同じグループなら開く
+			if (switchObject->GetGroupId() == shutterDoor->GetGroupId()) 
+			{
+				shutterDoor->Open();
+			}
 		}
 	}
 
@@ -596,6 +846,56 @@ void GameScene::Update()
 		}
 
 		shutterDoor->Update();
+	}
+
+	// 敵とシャッタードアの当たり判定
+	for (ShutterDoor* shutterDoor : shutterDoors_)
+	{
+		if (shutterDoor == nullptr)
+		{
+			continue;
+		}
+
+		// 完全に開いたドアには当たり判定を付けない
+		if (shutterDoor->IsHidden())
+		{
+			continue;
+		}
+
+		const Vector3 doorPosition = shutterDoor->GetWorldPosition();
+
+		// 剣敵
+		for (Enemy* enemy : enemies_)
+		{
+			if (enemy == nullptr || enemy->IsDead())
+			{
+				continue;
+			}
+
+			enemy->ResolveShutterDoorCollision(doorPosition);
+		}
+
+		// 遠距離敵
+		for (ArrowEnemy* arrowEnemy : arrowEnemies_)
+		{
+			if (arrowEnemy == nullptr || arrowEnemy->IsDead()) 
+			{
+				continue;
+			}
+
+			arrowEnemy->ResolveShutterDoorCollision(doorPosition);
+		}
+
+		// 盾敵
+		for (ShieldEnemy* shieldEnemy : shieldEnemies_)
+		{
+			if (shieldEnemy == nullptr || shieldEnemy->IsDead())
+			{
+				continue;
+			}
+
+			shieldEnemy->ResolveShutterDoorCollision(doorPosition);
+		}
 	}
 
 	// ダメージ床更新
@@ -613,12 +913,94 @@ void GameScene::Update()
 	if (boss_ != nullptr)
 	{
 		boss_->Update();
+
+		// ボスが突進中
+		if (boss_->IsCharging())
+		{
+			if (!isBossDashSEPlaying_)
+			{
+				bossDashVoiceHandle_ = Audio::GetInstance()->PlayWave(dashSEHandle_, true, 0.5f);
+
+				isBossDashSEPlaying_ = true;
+			}
+		}
+		else 
+		{
+			if (isBossDashSEPlaying_)
+			{
+				Audio::GetInstance()->StopWave(bossDashVoiceHandle_);
+
+				bossDashVoiceHandle_ = 0;
+				isBossDashSEPlaying_ = false;
+			}
+		}
+
+		// ボスの剣攻撃SE
+		if (boss_->IsSwordAttackRequested())
+		{
+			PlayGameSE(swordAttackSEHandle_, false, 0.5f);
+
+			boss_->ClearSwordAttackRequest();
+		}
+
 	}
 
-	// ボスを倒したらゲームクリア
+	for (Tutorial* tutorial : tutorials_)
+	{
+		if (tutorial == nullptr) 
+		{
+			continue;
+		}
+
+		tutorial->Update();
+	}
+
+	// ボス撃破後のクリア移行
 	if (boss_ != nullptr && boss_->IsDead())
 	{
-		isGameClear_ = true;
+		// 最初の1回だけフェード開始
+		if (!isClearTransition_)
+		{
+			isClearTransition_ = true;
+			bossBGMFadeTimer_ = 0.0f;
+
+			// ゲーム中SEをすべて停止
+			StopGameSEs();
+
+		}
+
+		constexpr float kDeltaTime = 1.0f / 60.0f;
+
+		bossBGMFadeTimer_ += kDeltaTime;
+
+		float progress = bossBGMFadeTimer_ / kBossBGMFadeDuration;
+
+		if (progress > 1.0f)
+		{
+			progress = 1.0f;
+		}
+
+		// 0.5 → 0.0 へ徐々に下げる
+		const float volume = kBossBGMVolume * (1.0f - progress);
+
+		if (bossBGMVoiceHandle_ != 0) 
+		{
+			Audio::GetInstance()->SetVolume(bossBGMVoiceHandle_, volume);
+		}
+
+		// フェード終了
+		if (bossBGMFadeTimer_ >= kBossBGMFadeDuration) 
+		{
+			if (bossBGMVoiceHandle_ != 0)
+			{
+				Audio::GetInstance()->StopWave(bossBGMVoiceHandle_);
+
+				bossBGMVoiceHandle_ = 0;
+			}
+
+			isGameClear_ = true;
+		}
+
 		return;
 	}
 
@@ -781,6 +1163,51 @@ void GameScene::Update()
 		}
 	}
 
+	for (MoveBlock* moveBlock : moveBlocks_)
+	{
+		if (moveBlock == nullptr)
+		{
+			continue;
+		}
+
+		const Vector3 moveBlockPosition = moveBlock->GetWorldPosition();
+
+		const Vector3 moveBlockMoveAmount = moveBlock->GetMoveAmount();
+
+		// 剣敵
+		for (Enemy* enemy : enemies_) 
+		{
+			if (enemy == nullptr || enemy->IsDead()) 
+			{
+				continue;
+			}
+
+			enemy->ResolveMoveBlockCollision(moveBlockPosition, moveBlockMoveAmount);
+		}
+
+		// 遠距離敵
+		for (ArrowEnemy* arrowEnemy : arrowEnemies_)
+		{
+			if (arrowEnemy == nullptr || arrowEnemy->IsDead()) 
+			{
+				continue;
+			}
+
+			arrowEnemy->ResolveMoveBlockCollision(moveBlockPosition, moveBlockMoveAmount);
+		}
+
+		// 盾敵
+		for (ShieldEnemy* shieldEnemy : shieldEnemies_)
+		{
+			if (shieldEnemy == nullptr || shieldEnemy->IsDead()) 
+			{
+				continue;
+			}
+
+			shieldEnemy->ResolveMoveBlockCollision(moveBlockPosition, moveBlockMoveAmount);
+		}
+	}
+
 	// プレイヤーとシャッタードアの当たり判定
 	if (player_ != nullptr && !player_->IsDead())
 	{
@@ -848,24 +1275,25 @@ void GameScene::Update()
 			const bool isEnemyInFront = IsEnemyInFront(playerPosition, enemyPosition, player_->GetLRDirection());
 
 			// 正面を向いてガードしているか
-			const bool canGuard = player_->IsGuarding() && isEnemyInFront;
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isEnemyInFront;
 
-			if (canGuard) 
+			if (canGuard)
 			{
-				// ガード成功
-				// 敵とは反対方向へプレイヤーをノックバック
-				if (enemyPosition.x >= playerPosition.x) 
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+
+				if (enemyPosition.x >= playerPosition.x)
 				{
-					// 敵が右側にいるので、プレイヤーを左へ押す
 					player_->PushBack(-kChargePlayerPushBackDistance);
 				}
 				else 
 				{
-					// 敵が左側にいるので、プレイヤーを右へ押す
 					player_->PushBack(kChargePlayerPushBackDistance);
 				}
 
-				// ガードされたので突進終了
 				shieldEnemy->StopCharge();
 			}
 			else 
@@ -921,6 +1349,9 @@ void GameScene::Update()
 
 		arrowBullets_.push_back(bullet);
 
+		// 発射SE
+		PlayGameSE(shotSEHandle_, false, 0.5f);
+
 		// 発射要求を消費
 		arrowEnemy->ClearShootRequest();
 	}
@@ -934,6 +1365,74 @@ void GameScene::Update()
 		}
 
 		bullet->Update();
+	}
+
+	// ArrowBulletとMoveBlockの当たり判定
+	for (ArrowBullet* bullet : arrowBullets_)
+	{
+		if (bullet == nullptr || bullet->IsDead())
+		{
+			continue;
+		}
+
+		const Vector3 bulletPosition = bullet->GetWorldPosition();
+
+		for (MoveBlock* moveBlock : moveBlocks_) 
+		{
+			if (moveBlock == nullptr) 
+			{
+				continue;
+			}
+
+			const Vector3 moveBlockPosition = moveBlock->GetWorldPosition();
+
+			if (!IsArrowBulletMoveBlockCollision(bulletPosition, moveBlockPosition)) 
+			{
+				continue;
+			}
+
+			// MoveBlockに当たったので弾を消す
+			bullet->SetDead();
+
+			break;
+		}
+	}
+
+	// ArrowBulletとシャッタードアの当たり判定
+	for (ArrowBullet* bullet : arrowBullets_) 
+	{
+		if (bullet == nullptr || bullet->IsDead()) 
+		{
+			continue;
+		}
+
+		const Vector3 bulletPosition = bullet->GetWorldPosition();
+
+		for (ShutterDoor* shutterDoor : shutterDoors_)
+		{
+			if (shutterDoor == nullptr) 
+			{
+				continue;
+			}
+
+			// 完全に開いたドアには当たり判定を付けない
+			if (shutterDoor->IsHidden())
+			{
+				continue;
+			}
+
+			const Vector3 doorPosition = shutterDoor->GetWorldPosition();
+
+			if (!IsArrowBulletShutterDoorCollision(bulletPosition, doorPosition))
+			{
+				continue;
+			}
+
+			// 扉に当たったので弾を消す
+			bullet->SetDead();
+
+			break;
+		}
 	}
 
 	// ArrowBulletとプレイヤーの当たり判定
@@ -958,12 +1457,18 @@ void GameScene::Update()
 			// 弾がプレイヤーの正面から来たか
 			const bool isBulletInFront = IsEnemyInFront(playerPosition, bulletPosition, player_->GetLRDirection());
 
-			// 正面を向いてガードしていれば防御成功
-			const bool canGuard = player_->IsGuarding() && isBulletInFront;
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isBulletInFront;
 
-			if (!canGuard)
+			if (canGuard) 
 			{
-				// ガードできなかったので1ダメージ
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+			}
+			else 
+			{
 				player_->OnHit(1);
 			}
 
@@ -1014,23 +1519,27 @@ void GameScene::Update()
 			// 敵がプレイヤーの正面側にいるか
 			const bool isEnemyInFront = IsEnemyInFront(playerPosition, enemyPosition, player_->GetLRDirection());
 
-			const bool canGuard = player_->IsGuarding() && isEnemyInFront;
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isEnemyInFront;
 
-			if (canGuard) 
-			{
-				// ガード成功時は敵をプレイヤーから遠ざける
+		    if (canGuard) 
+		    {
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+
 				if (enemyPosition.x >= playerPosition.x) 
 				{
 					enemy->PushBack(kGuardPushBackDistance);
-				}
+				} 
 				else
 				{
 					enemy->PushBack(-kGuardPushBackDistance);
 				}
 			}
-			else 
-			{
-				// 剣攻撃で1ダメージ
+		    else
+		    {
 				player_->OnHit(1);
 			}
 
@@ -1051,15 +1560,35 @@ void GameScene::Update()
 
 			const bool isBossInFront = IsEnemyInFront(playerPosition, bossPosition, player_->GetLRDirection());
 
-			const bool canGuard = player_->IsGuarding() && isBossInFront;
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isBossInFront;
 
-			if (!canGuard) 
+			if (canGuard)
+			{
+				// ガード成功エフェクト
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+
+				// ボスとは反対方向へプレイヤーを押し返す
+				if (bossPosition.x >= playerPosition.x)
+				{
+					// ボスが右側にいる
+					player_->PushBack(-kBossSwordGuardPushBackDistance);
+				}
+				else 
+				{
+					// ボスが左側にいる
+					player_->PushBack(kBossSwordGuardPushBackDistance);
+				}
+			}
+			else
 			{
 				player_->OnHit(1);
 			}
 
-			// ガードでも被弾でも、
-			// 今回の剣攻撃は処理済み
+			// ガードでも被弾でも今回の攻撃は処理済み
 			boss_->SetAttackHit();
 		}
 	}
@@ -1069,12 +1598,44 @@ void GameScene::Update()
 	{
 		const Vector3 playerPosition = player_->GetWorldPosition();
 
-		if (boss_->IsPositionInSpinAttackRange(playerPosition)) 
+		if (boss_->IsPositionInSpinAttackRange(playerPosition))
 		{
-			// 回転攻撃は全方向攻撃なので、
-			// プレイヤーがどちらを向いていてもガード不可
-			player_->OnHit(1);
+			const Vector3 bossPosition = boss_->GetWorldPosition();
 
+			// ボスがプレイヤーの正面側にいるか
+			const bool isBossInFront = IsEnemyInFront(playerPosition, bossPosition, player_->GetLRDirection());
+
+			// 盾を構えていて、
+			// なおかつ盾をボス側へ向けている場合のみガード成功
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isBossInFront;
+
+			if (canGuard) 
+			{
+				// ガード成功エフェクト
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+
+				// ボスとは反対方向へプレイヤーを押し返す
+				if (bossPosition.x >= playerPosition.x) 
+				{
+					player_->PushBack(-kBossSpinGuardPushBackDistance);
+				}
+				else 
+				{
+					player_->PushBack(kBossSpinGuardPushBackDistance);
+				}
+			}
+			else 
+			{
+				// 盾を構えていない、
+				// または盾を反対方向へ向けているのでダメージ
+				player_->OnHit(1);
+			}
+
+			// ガードでも被弾でも今回の攻撃は処理済み
 			boss_->SetAttackHit();
 		}
 	}
@@ -1124,6 +1685,9 @@ void GameScene::Update()
 
 			arrowBullets_.push_back(bullet);
 
+			// 発射SE
+			PlayGameSE(shotSEHandle_, false, 0.5f);
+
 			// 発射要求を消費
 			boss_->ClearShootRequest();
 		}
@@ -1153,28 +1717,37 @@ void GameScene::Update()
 		{
 			const bool isBossInFront = IsEnemyInFront(playerPosition, bossPosition, player_->GetLRDirection());
 
-			const bool canGuard = player_->IsGuarding() && isBossInFront;
+			const bool canGuard = player_->IsGuarding() && !boomerang_->IsThrown() && isBossInFront;
 
-			if (canGuard) 
-			{
-				// 盾敵と同じく、
-				// プレイヤーを反対方向へ押す
-				if (bossPosition.x >= playerPosition.x) 
+		    if (canGuard) 
+		    {
+				// ガード成功エフェクト
+				CreateGuardRingEffect();
+				CreateSparkParticles(player_->GetShieldPosition());
+
+				// ガードSE
+				PlayGameSE(guardSEHandle_, false, 0.5f);
+
+				// ボスとは反対方向へ大きく吹き飛ばす
+				if (bossPosition.x >= playerPosition.x)
 				{
-					player_->PushBack(-kChargePlayerPushBackDistance);
-				} 
+					player_->PushBack(-kBossChargeGuardPushBackDistance);
+				}
 				else
 				{
-					player_->PushBack(kChargePlayerPushBackDistance);
+					player_->PushBack(kBossChargeGuardPushBackDistance);
 				}
-			}
-			else
-			{
+			} 
+		    else 
+		    {
 				player_->OnHit(1);
 			}
 
 			// ガード・命中どちらでも突進終了
 			boss_->StopCharge();
+
+			boss_->SetAttackHit();
+
 		}
 	}
 
@@ -1198,6 +1771,10 @@ void GameScene::Update()
 		hitBossReturn_ = false;
 
 		boomerang_->Throw();
+
+		// 発射SE
+		PlayGameSE(shotSEHandle_, false, 0.5f);
+
 	}
 
 	// 現在の入力を次フレーム用に保存
@@ -1258,7 +1835,20 @@ void GameScene::Update()
 
 				if (!hasAlreadyHit)
 				{
+					const int hpBefore = enemy->GetHP();
+
 					enemy->OnHit(1);
+
+					// 敵が死亡したか
+					if (hpBefore > 0 && enemy->GetHP() <= 0)
+					{
+						PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+					} 
+					else 
+					{
+						PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+					}
+
 					hitEnemiesOutbound_.insert(enemy);
 				}
 			}
@@ -1269,7 +1859,19 @@ void GameScene::Update()
 
 				if (!hasAlreadyHit)
 				{
+					const int hpBefore = enemy->GetHP();
+
 					enemy->OnHit(1);
+
+					if (hpBefore > 0 && enemy->GetHP() <= 0)
+					{
+						PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+					} 
+					else 
+					{
+						PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+					}
+
 					hitEnemiesReturn_.insert(enemy);
 				}
 			}
@@ -1297,7 +1899,18 @@ void GameScene::Update()
 
 				if (!hasAlreadyHit)
 				{
+					const int hpBefore = arrowEnemy->GetHP();
+
 					arrowEnemy->OnHit(1);
+
+					if (hpBefore > 0 && arrowEnemy->GetHP() <= 0) 
+					{
+						PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+					}
+					else
+					{
+						PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+					}
 
 					hitArrowEnemiesOutbound_.insert(arrowEnemy);
 				}
@@ -1309,7 +1922,19 @@ void GameScene::Update()
 
 				if (!hasAlreadyHit) 
 				{
+					const int hpBefore = arrowEnemy->GetHP();
+
 					arrowEnemy->OnHit(1);
+
+					// 敵が死亡したか
+					if (hpBefore > 0 && arrowEnemy->GetHP() <= 0)
+					{
+						PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+					}
+					else 
+					{
+						PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+					}
 
 					hitArrowEnemiesReturn_.insert(arrowEnemy);
 				}
@@ -1342,14 +1967,42 @@ void GameScene::Update()
 						// 正面なので盾で防御
 						shieldEnemy->OnGuard();
 
+						// ガードした位置にリングを出す
+						Vector3 ringPosition = shieldEnemy->GetWorldPosition();
+
+						if (boomerangPosition.x >= ringPosition.x) 
+						{
+							ringPosition.x += 0.8f;
+						} 
+						else
+						{
+							ringPosition.x -= 0.8f;
+						}
+
+						CreateRingEffect(ringPosition);
+						CreateSparkParticles(ringPosition);
+
+						// ガードSE
+						PlayGameSE(guardSEHandle_, false, 0.5f);
+
 						// ブーメランもここで止める
 						boomerang_->StartReturn();
-
 					}
 					else
 					{
 						// 背後ならダメージ
+						const int hpBefore = shieldEnemy->GetHP();
+
 						shieldEnemy->OnHit(1);
+
+						if (hpBefore > 0 && shieldEnemy->GetHP() <= 0) 
+						{
+							PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+						} 
+						else 
+						{
+							PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+						}
 					}
 
 					hitShieldEnemiesOutbound_.insert(shieldEnemy);
@@ -1364,7 +2017,18 @@ void GameScene::Update()
 				{
 					if (!shieldEnemy->IsPositionInFront(boomerangPosition)) 
 					{
+						const int hpBefore = shieldEnemy->GetHP();
+
 						shieldEnemy->OnHit(1);
+
+						if (hpBefore > 0 && shieldEnemy->GetHP() <= 0)
+						{
+							PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+						}
+						else
+						{
+							PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+						}
 					}
 
 					hitShieldEnemiesReturn_.insert(shieldEnemy);
@@ -1384,9 +2048,26 @@ void GameScene::Update()
 				{
 					if (!hitBossOutbound_)
 					{
-						if (boss_->IsPositionInFront(boomerangPosition)) 
+						if (boss_->IsPositionInFront(boomerangPosition))
 						{
 							// 正面攻撃は無効化
+
+							Vector3 ringPosition = boss_->GetWorldPosition();
+
+							if (boomerangPosition.x >= ringPosition.x)
+							{
+								ringPosition.x += 1.0f;
+							}
+							else
+							{
+								ringPosition.x -= 1.0f;
+							}
+
+							CreateRingEffect(ringPosition);
+							CreateSparkParticles(ringPosition);
+
+							// ガードSE
+							PlayGameSE(guardSEHandle_, false, 0.5f);
 
 							// ブーメランを強制的に帰還させる
 							boomerang_->StartReturn();
@@ -1394,7 +2075,18 @@ void GameScene::Update()
 						else 
 						{
 							// 背後なのでダメージ
+							const int hpBefore = boss_->GetHP();
+
 							boss_->OnHit(1);
+
+							if (hpBefore > 0 && boss_->GetHP() <= 0)
+							{
+								PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+							}
+							else 
+							{
+								PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+							}
 						}
 
 						hitBossOutbound_ = true;
@@ -1409,7 +2101,18 @@ void GameScene::Update()
 						// 帰りも背後からならダメージ
 						if (!boss_->IsPositionInFront(boomerangPosition)) 
 						{
+							const int hpBefore = boss_->GetHP();
+
 							boss_->OnHit(1);
+
+							if (hpBefore > 0 && boss_->GetHP() <= 0)
+							{
+								PlayGameSE(enemyDeathSEHandle_, false, 0.5f);
+							}
+							else 
+							{
+								PlayGameSE(enemyDamageSEHandle_, false, 0.5f);
+							}
 						}
 
 						// 正面なら何も起こらない
@@ -1443,6 +2146,9 @@ void GameScene::Update()
 			// スイッチをONにする
 			switchObject->OnSwitch();
 			
+			// スイッチSE
+			PlayGameSE(switchSEHandle_, false, 0.5f);
+
 		}
 
 	}
@@ -1452,11 +2158,48 @@ void GameScene::Update()
 
 	backGroundWall_->Update();
 
-	// プレイヤーが死亡していたらゲームオーバー
-	if (player_ != nullptr && player_->IsDead())
+	if (ringEffect_ != nullptr) 
 	{
-		isGameOver_ = true;
+		ringEffect_->Update();
+
+		if (ringEffect_->IsFinished()) 
+		{
+			delete ringEffect_;
+			ringEffect_ = nullptr;
+		}
 	}
+
+	// 火花パーティクル更新
+	for (SparkParticle* particle : sparkParticles_)
+	{
+		if (particle == nullptr)
+		{
+			continue;
+		}
+
+		particle->Update();
+	}
+
+	// 終了したパーティクルを削除
+	sparkParticles_.erase(
+	    std::remove_if(
+	        sparkParticles_.begin(), sparkParticles_.end(),
+	        [](SparkParticle* particle)
+			{
+		        if (particle == nullptr) 
+				{
+			        return true;
+		        }
+
+		        if (particle->IsFinished())
+				{
+			        delete particle;
+			        return true;
+		        }
+
+		        return false;
+	        }),
+	    sparkParticles_.end());
 
 }
 
@@ -1588,6 +2331,16 @@ void GameScene::Draw()
 		boss_->Draw();
 	}
 
+	for (Tutorial* tutorial : tutorials_)
+	{
+		if (tutorial == nullptr)
+		{
+			continue;
+		}
+
+		tutorial->Draw();
+	}
+
 	// ブロック
 	for (const auto& blockLine : worldTransformBlocks_) 
 	{
@@ -1601,6 +2354,28 @@ void GameScene::Draw()
 			blockModel_->Draw(*worldTransform, camera_);
 		}
 	}
+
+	if (ringEffect_ != nullptr)
+	{
+		ringEffect_->Draw();
+	}
+
+	// 火花パーティクル
+	for (SparkParticle* particle : sparkParticles_)
+	{
+		if (particle == nullptr) 
+		{
+			continue;
+		}
+
+		particle->Draw();
+	}
+
+	if (deathParticle_ != nullptr)
+	{
+		deathParticle_->Draw();
+	}
+
 }
 
 GameScene::~GameScene()
@@ -1787,6 +2562,69 @@ GameScene::~GameScene()
 
 	backGroundWallModel_ = nullptr;
 
+	for (Tutorial*& tutorial : tutorials_) 
+	{
+		delete tutorial;
+		tutorial = nullptr;
+	}
+
+	tutorials_.clear();
+
+	delete tutorialPlateModel_;
+	tutorialPlateModel_ = nullptr;
+
+	delete moveTutorialModel_;
+	moveTutorialModel_ = nullptr;
+
+	delete jumpTutorialModel_;
+	jumpTutorialModel_ = nullptr;
+
+	delete attackTutorialModel_;
+	attackTutorialModel_ = nullptr;
+
+	delete defenceTutorialModel_;
+	defenceTutorialModel_ = nullptr;
+
+	delete ringEffect_;
+	ringEffect_ = nullptr;
+
+	delete ringEffectModel_;
+	ringEffectModel_ = nullptr;
+
+	for (SparkParticle*& particle : sparkParticles_) 
+	{
+		delete particle;
+		particle = nullptr;
+	}
+
+	sparkParticles_.clear();
+
+	delete sparkParticleModel_;
+	sparkParticleModel_ = nullptr;
+
+	delete deathParticle_;
+	deathParticle_ = nullptr;
+
+	delete deathParticleModel_;
+	deathParticleModel_ = nullptr;
+
+	// 盾敵の突進SEを停止
+	for (const auto& pair : shieldEnemyDashVoiceHandles_)
+	{
+		Audio::GetInstance()->StopWave(pair.second);
+	}
+
+	shieldEnemyDashVoiceHandles_.clear();
+
+	// ボスの突進SEを停止
+	if (isBossDashSEPlaying_)
+	{
+		Audio::GetInstance()->StopWave(bossDashVoiceHandle_);
+
+		bossDashVoiceHandle_ = 0;
+		isBossDashSEPlaying_ = false;
+	}
+
 }
 
 void GameScene::GenerateBlocks()
@@ -1820,5 +2658,107 @@ void GameScene::GenerateBlocks()
 
 			worldTransformBlocks_[yIndex][xIndex] = worldTransform;
 		}
+	}
+}
+
+void GameScene::CreateGuardRingEffect() 
+{
+	if (player_ == nullptr) 
+	{
+		return;
+	}
+
+	Vector3 ringPosition = player_->GetShieldPosition();
+
+	if (player_->GetLRDirection() == Player::LRDirection::kRight)
+	{
+		ringPosition.x += 0.8f;
+	}
+	else
+	{
+		ringPosition.x -= 0.8f;
+	}
+
+	CreateRingEffect(ringPosition);
+}
+
+void GameScene::CreateRingEffect(const Vector3& position) 
+{
+	if (ringEffectModel_ == nullptr) 
+	{
+		return;
+	}
+
+	delete ringEffect_;
+	ringEffect_ = nullptr;
+
+	ringEffect_ = new RingEffect();
+
+	ringEffect_->Initialize(ringEffectModel_, &camera_, position);
+}
+
+void GameScene::CreateSparkParticles(const Vector3& position)
+{
+	if (sparkParticleModel_ == nullptr)
+	{
+		return;
+	}
+
+	// 生成する火花の数
+	constexpr int kParticleCount = 8;
+
+	for (int i = 0; i < kParticleCount; ++i)
+	
+	{
+		SparkParticle* particle = new SparkParticle();
+
+		// X方向：左右へランダム
+		const float velocityX = (static_cast<float>(rand() % 201) - 100.0f) / 1000.0f;
+
+		// Y方向：主に上方向へランダム
+		const float velocityY = 0.05f + static_cast<float>(rand() % 101) / 1000.0f;
+
+		Vector3 velocity = {velocityX, velocityY, 0.0f};
+
+		particle->Initialize(sparkParticleModel_, &camera_, position, velocity);
+
+		sparkParticles_.push_back(particle);
+	}
+}
+
+void GameScene::PlayGameSE(uint32_t soundHandle, bool loopFlag, float volume) 
+{
+	const uint32_t voiceHandle = Audio::GetInstance()->PlayWave(soundHandle, loopFlag, volume);
+
+	gameSEVoiceHandles_.push_back(voiceHandle);
+}
+
+void GameScene::StopGameSEs()
+{
+	Audio* audio = Audio::GetInstance();
+
+	// 通常のゲーム中SEを停止
+	for (uint32_t voiceHandle : gameSEVoiceHandles_)
+	{
+		audio->StopWave(voiceHandle);
+	}
+
+	gameSEVoiceHandles_.clear();
+
+	// 盾敵の突進SEを停止
+	for (const auto& pair : shieldEnemyDashVoiceHandles_)
+	{
+		audio->StopWave(pair.second);
+	}
+
+	shieldEnemyDashVoiceHandles_.clear();
+
+	// ボスの突進SEを停止
+	if (isBossDashSEPlaying_) 
+	{
+		audio->StopWave(bossDashVoiceHandle_);
+
+		bossDashVoiceHandle_ = 0;
+		isBossDashSEPlaying_ = false;
 	}
 }

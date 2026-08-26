@@ -40,51 +40,115 @@ void MoveBlock::Update()
 	// 横移動
 	if (moveDirection_ == MoveDirection::kHorizontal)
 	{
-		if (direction_ > 0)
+		// 終点が初期位置より右にある場合
+		if (endPositionX_ > startPosition_.x)
 		{
-			worldTransform_.translation_.x += kMoveSpeed;
-
-			if (worldTransform_.translation_.x >= endPositionX_) 
+			// 終点へ向かう
+			if (direction_ > 0) 
 			{
-				worldTransform_.translation_.x = endPositionX_;
-				direction_ = -1;
+				worldTransform_.translation_.x += kMoveSpeed;
+
+				if (worldTransform_.translation_.x >= endPositionX_)
+				{
+					worldTransform_.translation_.x = endPositionX_;
+					direction_ = -1;
+				}
+			}
+			// 初期位置へ戻る
+			else 
+			{
+				worldTransform_.translation_.x -= kMoveSpeed;
+
+				if (worldTransform_.translation_.x <= startPosition_.x)
+				{
+					worldTransform_.translation_.x = startPosition_.x;
+					direction_ = 1;
+				}
 			}
 		}
-		else 
+		// 終点が初期位置より左にある場合
+		else
 		{
-			worldTransform_.translation_.x -= kMoveSpeed;
-
-			if (worldTransform_.translation_.x <= startPosition_.x)
+			// 終点へ向かう
+			if (direction_ > 0) 
 			{
-				worldTransform_.translation_.x = startPosition_.x;
-				direction_ = 1;
+				worldTransform_.translation_.x -= kMoveSpeed;
+
+				if (worldTransform_.translation_.x <= endPositionX_) 
+				{
+					worldTransform_.translation_.x = endPositionX_;
+					direction_ = -1;
+				}
+			}
+			// 初期位置へ戻る
+			else
+			{
+				worldTransform_.translation_.x += kMoveSpeed;
+
+				if (worldTransform_.translation_.x >= startPosition_.x)
+				{
+					worldTransform_.translation_.x = startPosition_.x;
+					direction_ = 1;
+				}
 			}
 		}
 	}
 
+
+
 	// 縦移動
 	else 
 	{
-		// 最初は下方向
-		if (direction_ > 0)
+		// 終点が初期位置より上にある場合
+		if (endPositionY_ > startPosition_.y)
 		{
-			worldTransform_.translation_.y -= kMoveSpeed;
-
-			if (worldTransform_.translation_.y <= endPositionY_) 
+			// 終点へ向かう
+			if (direction_ > 0)
 			{
-				worldTransform_.translation_.y = endPositionY_;
-				direction_ = -1;
+				worldTransform_.translation_.y += kMoveSpeed;
+
+				if (worldTransform_.translation_.y >= endPositionY_) 
+				{
+					worldTransform_.translation_.y = endPositionY_;
+					direction_ = -1;
+				}
+			}
+			// 初期位置へ戻る
+			else 
+			{
+				worldTransform_.translation_.y -= kMoveSpeed;
+
+				if (worldTransform_.translation_.y <= startPosition_.y)
+				{
+					worldTransform_.translation_.y = startPosition_.y;
+					direction_ = 1;
+				}
 			}
 		}
-		// 初期位置へ戻る
-		else
+		// 終点が初期位置より下にある場合
+		else 
 		{
-			worldTransform_.translation_.y += kMoveSpeed;
-
-			if (worldTransform_.translation_.y >= startPosition_.y) 
+			// 終点へ向かう
+			if (direction_ > 0) 
 			{
-				worldTransform_.translation_.y = startPosition_.y;
-				direction_ = 1;
+				worldTransform_.translation_.y -= kMoveSpeed;
+
+				if (worldTransform_.translation_.y <= endPositionY_)
+				{
+					worldTransform_.translation_.y = endPositionY_;
+					direction_ = -1;
+				}
+			}
+			// 初期位置へ戻る
+			else 
+			{
+				worldTransform_.translation_.y += kMoveSpeed;
+
+				if (worldTransform_.translation_.y >= startPosition_.y) 
+				{
+					worldTransform_.translation_.y = startPosition_.y;
+					direction_ = 1;
+				}
 			}
 		}
 	}
@@ -133,9 +197,7 @@ void MoveBlock::SearchRailEnd()
 	endPositionX_ = startPosition_.x;
 	endPositionY_ = startPosition_.y;
 
-	// =========================
 	// まず右側にR0があるか調べる
-	// =========================
 	if (mapChipField_->GetMapChipTypeByIndex(startIndex.xIndex + 1, startIndex.yIndex) == MapChipType::kBesideRail) 
 	{
 		moveDirection_ = MoveDirection::kHorizontal;
@@ -162,10 +224,34 @@ void MoveBlock::SearchRailEnd()
 		return;
 	}
 
-	// =========================
-	// 次に下側にR1があるか調べる
-	// =========================
+	// 左側にR0があるか調べる
+	if (startIndex.xIndex > 0 && mapChipField_->GetMapChipTypeByIndex(startIndex.xIndex - 1, startIndex.yIndex) == MapChipType::kBesideRail)
+	{
+		moveDirection_ = MoveDirection::kHorizontal;
 
+		int32_t currentX = startIndex.xIndex - 1;
+
+		while (currentX >= 0)
+		{
+			if (mapChipField_->GetMapChipTypeByIndex(currentX, startIndex.yIndex) != MapChipType::kBesideRail)
+			{
+				break;
+			}
+
+			const Vector3 railPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(currentX), static_cast<uint32_t>(startIndex.yIndex));
+
+			endPositionX_ = railPosition.x;
+
+			--currentX;
+		}
+
+		// 横向きなので回転なし
+		worldTransform_.rotation_.z = 0.0f;
+
+		return;
+	}
+
+	// 次に下側にR1があるか調べる
 	// CSVでは下へ行くほど yIndex が大きくなる
 	if (mapChipField_->GetMapChipTypeByIndex(startIndex.xIndex, startIndex.yIndex + 1) == MapChipType::kVerticalRail)
 	{
@@ -185,6 +271,34 @@ void MoveBlock::SearchRailEnd()
 			endPositionY_ = railPosition.y;
 
 			++currentY;
+		}
+
+		// 縦移動時は矢印を90度回転
+		worldTransform_.rotation_.z = std::numbers::pi_v<float> / 2.0f;
+
+		return;
+	}
+
+	// 上側にR1があるか調べる
+	// CSVでは上へ行くほど yIndex が小さくなる
+	if (startIndex.yIndex > 0 && mapChipField_->GetMapChipTypeByIndex(startIndex.xIndex, startIndex.yIndex - 1) == MapChipType::kVerticalRail) 
+	{
+		moveDirection_ = MoveDirection::kVertical;
+
+		int32_t currentY = startIndex.yIndex - 1;
+
+		while (currentY >= 0) 
+		{
+			if (mapChipField_->GetMapChipTypeByIndex(startIndex.xIndex, currentY) != MapChipType::kVerticalRail)
+			{
+				break;
+			}
+
+			const Vector3 railPosition = mapChipField_->GetMapChipPositionByIndex(static_cast<uint32_t>(startIndex.xIndex), static_cast<uint32_t>(currentY));
+
+			endPositionY_ = railPosition.y;
+
+			--currentY;
 		}
 
 		// 縦移動時は矢印を90度回転

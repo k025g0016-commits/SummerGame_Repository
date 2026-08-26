@@ -4,7 +4,7 @@
 
 using namespace KamataEngine;
 
-void ShutterDoor::Initialize(Model* model, Camera* camera, const Vector3& position) 
+void ShutterDoor::Initialize(Model* model, Camera* camera, const Vector3& position, int32_t groupId)
 {
 	assert(model);
 	assert(camera);
@@ -12,18 +12,18 @@ void ShutterDoor::Initialize(Model* model, Camera* camera, const Vector3& positi
 	model_ = model;
 	camera_ = camera;
 
+	// グループ番号
+	groupId_ = groupId;
+
 	worldTransform_.Initialize();
 
 	// マップチップで指定された位置
 	worldTransform_.translation_ = position;
 
-	// 初期位置を保存
 	startPosition_ = position;
 
-	// 初期状態では閉じている
 	isOpen_ = false;
 
-	// 開いたときの目標位置
 	openTargetY_ = startPosition_.y + kOpenDistance;
 
 	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
@@ -31,7 +31,6 @@ void ShutterDoor::Initialize(Model* model, Camera* camera, const Vector3& positi
 	worldTransform_.TransferMatrix();
 
 	isHidden_ = false;
-
 }
 
 void ShutterDoor::Update()

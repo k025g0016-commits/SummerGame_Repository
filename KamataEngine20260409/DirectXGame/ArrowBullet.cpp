@@ -71,7 +71,9 @@ void ArrowBullet::Update()
 	{
 		MapChipIndexSet index = mapChipField_->GetMapChipIndexSetByPosition(worldTransform_.translation_);
 
-		if (mapChipField_->GetMapChipTypeByIndex(index.xIndex, index.yIndex) == MapChipType::kBlock)
+		const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(index.xIndex, index.yIndex);
+
+		if (mapChipType == MapChipType::kBlock || mapChipType == MapChipType::kSpikeBlock) 
 		{
 			isDead_ = true;
 		}

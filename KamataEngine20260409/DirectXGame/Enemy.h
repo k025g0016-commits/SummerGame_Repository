@@ -79,6 +79,23 @@ public:
 		hasAttackHit_ = true;
 	}
 
+	// シャッタードアとの衝突を解決
+	void ResolveShutterDoorCollision(const KamataEngine::Vector3& doorPosition);
+
+	void ResolveMoveBlockCollision(const KamataEngine::Vector3& moveBlockPosition, const KamataEngine::Vector3& moveBlockMoveAmount);
+
+	// 剣攻撃SEの再生要求があるか
+	bool IsSwordAttackRequested() const
+	{ 
+		return swordAttackRequested_;
+	}
+
+	// 剣攻撃SEの再生要求を消費
+	void ClearSwordAttackRequest()
+	{
+		swordAttackRequested_ = false;
+	}
+
 private:
 	// マップ衝突判定の結果
 	struct CollisionMapInfo 
@@ -288,5 +305,10 @@ private:
 
 	// 剣の描画専用Transform
 	KamataEngine::WorldTransform drawSwordWorldTransform_;
+
+	KamataEngine::Vector3 previousPosition_ = {};
+
+	// 剣攻撃SEの再生要求
+	bool swordAttackRequested_ = false;
 
 };

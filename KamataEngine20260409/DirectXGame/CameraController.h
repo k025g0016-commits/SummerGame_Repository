@@ -29,7 +29,7 @@ public:
 	}
 
 	// ボスエリア用の移動範囲を設定
-	void SetBossArea(float left, float right);
+	void SetBossArea(float left, float right, float bottom, float top);
 
 private:
 	// カメラ

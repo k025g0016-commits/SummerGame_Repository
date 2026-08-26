@@ -76,6 +76,12 @@ public:
 	// 正面から攻撃を防いだときの反応
 	void OnGuard();
 
+	// シャッタードアとの衝突を解決
+	void ResolveShutterDoorCollision(const KamataEngine::Vector3& doorPosition);
+
+	// MoveBlockとの衝突を解決
+	void ResolveMoveBlockCollision(const KamataEngine::Vector3& moveBlockPosition, const KamataEngine::Vector3& moveBlockMoveAmount);
+
 private:
 	// マップ衝突判定の結果
 	struct CollisionMapInfo 
@@ -162,9 +168,6 @@ private:
 
 	// 移動速度
 	static inline const float kWalkSpeed = 0.03f;
-
-	// 初期位置からの巡回範囲
-	static inline const float kWalkRange = 3.0f;
 
 	// 重力
 	static inline const float kGravity = 0.02f;
@@ -264,5 +267,11 @@ private:
 
 	// 赤く表示する時間
 	static inline const float kDamageFlashDuration = 0.1f;
+
+	// 通常歩行中、前方に壁または崖があるか
+	bool ShouldReverseWalkDirection() const;
+
+	// 更新前の敵位置
+	KamataEngine::Vector3 previousPosition_ = {};
 
 };

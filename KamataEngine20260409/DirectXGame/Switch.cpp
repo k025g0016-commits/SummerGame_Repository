@@ -4,13 +4,14 @@
 
 using namespace KamataEngine;
 
-void Switch::Initialize(Model* model, Camera* camera, const Vector3& position)
+void Switch::Initialize(Model* model, Camera* camera, const Vector3& position, int32_t groupId)
 {
 	assert(model);
 	assert(camera);
 
 	model_ = model;
 	camera_ = camera;
+	groupId_ = groupId;
 
 	worldTransform_.Initialize();
 	objectColor_.Initialize();

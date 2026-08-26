@@ -116,14 +116,27 @@ public:
 	}
 
 	// 突進中か
-	bool IsCharging() const { return behavior_ == BossBehavior::kCharge; }
+	bool IsCharging() const 
+	{ 
+		return behavior_ == BossBehavior::kCharge;
+	}
 
 	// 突進を終了して硬直へ移行
 	void StopCharge();
 
 	void UpdatePhase();
 
-	
+	// 剣攻撃SEの再生要求があるか
+	bool IsSwordAttackRequested() const 
+	{
+		return swordAttackRequested_; 
+	}
+
+	// 剣攻撃SEの再生要求を消費
+	void ClearSwordAttackRequest() 
+	{ 
+		swordAttackRequested_ = false;
+	}
 
 private:
 	// ボス本体
@@ -305,5 +318,8 @@ private:
 
 	// 赤く表示する時間
 	static inline const float kDamageFlashDuration = 0.1f;
+
+	// 剣攻撃SEの再生要求
+	bool swordAttackRequested_ = false;
 
 };

@@ -86,6 +86,10 @@ void Enemy::Initialize(Model* model, Model* swordModel, Camera* camera, const Ve
 
 	hasAttackHit_ = false;
 
+	previousPosition_ = position;
+
+	swordAttackRequested_ = false;
+
 }
 
 void Enemy::Update() 
@@ -129,6 +133,8 @@ void Enemy::Update()
 	{
 		UpdateBehavior();
 	}
+
+	previousPosition_ = worldTransform_.translation_;
 
 	// 左右移動
 	Move();
@@ -368,7 +374,9 @@ void Enemy::MapCollisionDown(CollisionMapInfo& info)
 			continue;
 		}
 
-		if (mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex) != MapChipType::kBlock)
+		const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex);
+
+		if (mapChipType != MapChipType::kBlock && mapChipType != MapChipType::kSpikeBlock)
 		{
 			continue;
 		}
@@ -429,16 +437,29 @@ void Enemy::MapCollisionLeft(CollisionMapInfo& info)
 
 	for (Corner corner : checkCorners) 
 	{
-		const MapChipIndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(currentCorners[corner]);
+		Vector3 currentCheckPosition = currentCorners[corner];
+		Vector3 movedCheckPosition = movedCorners[corner];
 
-		const MapChipIndexSet movedIndex = mapChipField_->GetMapChipIndexSetByPosition(movedCorners[corner]);
+		// 足元の床を横壁として誤判定しないように、
+		// 下側の判定点を少し上へずらす
+		if (corner == kLeftBottom) 
+		{
+			currentCheckPosition.y += kCollisionEpsilon;
+			movedCheckPosition.y += kCollisionEpsilon;
+		}
+
+		const MapChipIndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(currentCheckPosition);
+
+		const MapChipIndexSet movedIndex = mapChipField_->GetMapChipIndexSetByPosition(movedCheckPosition);
 
 		if (currentIndex.xIndex == movedIndex.xIndex) 
 		{
 			continue;
 		}
 
-		if (mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex) != MapChipType::kBlock)
+		const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex);
+
+		if (mapChipType != MapChipType::kBlock && mapChipType != MapChipType::kSpikeBlock) 
 		{
 			continue;
 		}
@@ -495,21 +516,31 @@ void Enemy::MapCollisionRight(CollisionMapInfo& info)
 
 	for (Corner corner : checkCorners) 
 	{
-		// 境界上の座標を内側へ少しずらす
 		Vector3 currentCheckPosition = currentCorners[corner];
+		Vector3 movedCheckPosition = movedCorners[corner];
 
+		// 境界上の座標を内側へ少しずらす
 		currentCheckPosition.x -= kCollisionEpsilon;
+
+		// 足元の床を横壁として誤判定しないようにする
+		if (corner == kRightBottom)
+		{
+			currentCheckPosition.y += kCollisionEpsilon;
+			movedCheckPosition.y += kCollisionEpsilon;
+		}
 
 		const MapChipIndexSet currentIndex = mapChipField_->GetMapChipIndexSetByPosition(currentCheckPosition);
 
-		const MapChipIndexSet movedIndex = mapChipField_->GetMapChipIndexSetByPosition(movedCorners[corner]);
+		const MapChipIndexSet movedIndex = mapChipField_->GetMapChipIndexSetByPosition(movedCheckPosition);
 
 		if (currentIndex.xIndex == movedIndex.xIndex) 
 		{
 			continue;
 		}
 
-		if (mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex) != MapChipType::kBlock) 
+		const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(movedIndex.xIndex, movedIndex.yIndex);
+
+		if (mapChipType != MapChipType::kBlock && mapChipType != MapChipType::kSpikeBlock)
 		{
 			continue;
 		}
@@ -805,6 +836,10 @@ void Enemy::UpdateBehavior()
 		if (behaviorTimer_ >= kWindupDuration)
 		{
 			ChangeBehavior(EnemyBehavior::kAttack);
+
+			// 剣を振り始めたのでSE再生要求
+			swordAttackRequested_ = true;
+
 		}
 		break;
 	}
@@ -982,5 +1017,171 @@ bool Enemy::IsGroundAhead() const
 
 	const MapChipIndexSet index = mapChipField_->GetMapChipIndexSetByPosition(checkPosition);
 
-	return mapChipField_->GetMapChipTypeByIndex(index.xIndex, index.yIndex) == MapChipType::kBlock;
+	const MapChipType mapChipType = mapChipField_->GetMapChipTypeByIndex(index.xIndex, index.yIndex);
+
+	return mapChipType == MapChipType::kBlock || mapChipType == MapChipType::kSpikeBlock;
+}
+
+void Enemy::ResolveShutterDoorCollision(const Vector3& doorPosition)
+{
+	if (isDead_ || isDeathAnimation_)
+	{
+		return;
+	}
+
+	constexpr float kDoorHalfWidth = 0.5f;
+	constexpr float kDoorHalfHeight = 0.5f;
+
+	const float enemyHalfWidth = kWidth / 2.0f;
+	const float enemyHalfHeight = kHeight / 2.0f;
+
+	const float enemyLeft = worldTransform_.translation_.x - enemyHalfWidth;
+
+	const float enemyRight = worldTransform_.translation_.x + enemyHalfWidth;
+
+	const float enemyBottom = worldTransform_.translation_.y - enemyHalfHeight;
+
+	const float enemyTop = worldTransform_.translation_.y + enemyHalfHeight;
+
+	const float doorLeft = doorPosition.x - kDoorHalfWidth;
+
+	const float doorRight = doorPosition.x + kDoorHalfWidth;
+
+	const float doorBottom = doorPosition.y - kDoorHalfHeight;
+
+	const float doorTop = doorPosition.y + kDoorHalfHeight;
+
+	// 重なっていなければ何もしない
+	if (enemyRight <= doorLeft || enemyLeft >= doorRight || enemyTop <= doorBottom || enemyBottom >= doorTop) 
+	{
+		return;
+	}
+
+	// 敵が扉の左側にいる
+	if (worldTransform_.translation_.x < doorPosition.x)
+	{
+		worldTransform_.translation_.x = doorLeft - enemyHalfWidth;
+	}
+	else 
+	{
+		worldTransform_.translation_.x = doorRight + enemyHalfWidth;
+	}
+
+	// 横移動を止める
+	velocity_.x = 0.0f;
+
+	// 通常歩行中なら進行方向を反転
+	ReverseDirection();
+
+	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+
+	worldTransform_.TransferMatrix();
+}
+
+void Enemy::ResolveMoveBlockCollision(const Vector3& moveBlockPosition, const Vector3& moveBlockMoveAmount) 
+{
+	if (isDead_ || isDeathAnimation_) 
+	{
+		return;
+	}
+
+	constexpr float kMoveBlockWidth = 1.0f;
+	constexpr float kMoveBlockHeight = 1.0f;
+
+	const float enemyHalfWidth = kWidth / 2.0f;
+	const float enemyHalfHeight = kHeight / 2.0f;
+
+	const float moveBlockHalfWidth = kMoveBlockWidth / 2.0f;
+	const float moveBlockHalfHeight = kMoveBlockHeight / 2.0f;
+
+	// 現在の敵の矩形
+	const float enemyLeft = worldTransform_.translation_.x - enemyHalfWidth;
+
+	const float enemyRight = worldTransform_.translation_.x + enemyHalfWidth;
+
+	const float enemyBottom = worldTransform_.translation_.y - enemyHalfHeight;
+
+	const float enemyTop = worldTransform_.translation_.y + enemyHalfHeight;
+
+	// 現在のMoveBlock矩形
+	const float blockLeft = moveBlockPosition.x - moveBlockHalfWidth;
+
+	const float blockRight = moveBlockPosition.x + moveBlockHalfWidth;
+
+	const float blockBottom = moveBlockPosition.y - moveBlockHalfHeight;
+
+	const float blockTop = moveBlockPosition.y + moveBlockHalfHeight;
+
+	// 現在重なっていなければ何もしない
+	if (enemyRight <= blockLeft || enemyLeft >= blockRight || enemyTop <= blockBottom || enemyBottom >= blockTop)
+	{
+		return;
+	}
+
+	// MoveBlockの移動前位置
+	const Vector3 previousMoveBlockPosition = {moveBlockPosition.x - moveBlockMoveAmount.x, moveBlockPosition.y - moveBlockMoveAmount.y, moveBlockPosition.z - moveBlockMoveAmount.z};
+
+	// 敵の前フレーム位置
+	const float previousEnemyLeft = previousPosition_.x - enemyHalfWidth;
+
+	const float previousEnemyRight = previousPosition_.x + enemyHalfWidth;
+
+	const float previousEnemyBottom = previousPosition_.y - enemyHalfHeight;
+
+	const float previousEnemyTop = previousPosition_.y + enemyHalfHeight;
+
+	// MoveBlockの前フレーム位置
+	const float previousBlockLeft = previousMoveBlockPosition.x - moveBlockHalfWidth;
+
+	const float previousBlockRight = previousMoveBlockPosition.x + moveBlockHalfWidth;
+
+	const float previousBlockBottom = previousMoveBlockPosition.y - moveBlockHalfHeight;
+
+	const float previousBlockTop = previousMoveBlockPosition.y + moveBlockHalfHeight;
+
+	// 上から接触
+	if (previousEnemyBottom >= previousBlockTop)
+	{
+		worldTransform_.translation_.y = blockTop + enemyHalfHeight;
+
+		if (velocity_.y < 0.0f) 
+		{
+			velocity_.y = 0.0f;
+		}
+
+		onGround_ = true;
+	}
+	// 下から接触
+	else if (previousEnemyTop <= previousBlockBottom)
+	{
+		worldTransform_.translation_.y = blockBottom - enemyHalfHeight;
+
+		if (velocity_.y > 0.0f)
+		{
+			velocity_.y = 0.0f;
+		}
+	}
+	// 左側から接触
+	else if (previousEnemyRight <= previousBlockLeft)
+	{
+		worldTransform_.translation_.x = blockLeft - enemyHalfWidth;
+
+		velocity_.x = 0.0f;
+
+		ReverseDirection();
+	}
+	// 右側から接触
+	else if (previousEnemyLeft >= previousBlockRight) 
+	{
+		worldTransform_.translation_.x = blockRight + enemyHalfWidth;
+
+		velocity_.x = 0.0f;
+
+		ReverseDirection();
+	}
+
+	// ワールド行列更新
+	worldTransform_.matWorld_ = MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotation_, worldTransform_.translation_);
+
+	worldTransform_.TransferMatrix();
 }

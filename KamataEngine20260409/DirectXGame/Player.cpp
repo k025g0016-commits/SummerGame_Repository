@@ -40,6 +40,8 @@ void Player::Initialize(Model* model, const Camera* camera, const Vector3& posit
 	// 更新前位置も初期位置にする
 	previousPosition_ = position;
 
+	isJumpSERequested_ = false;
+
 }
 
 void Player::Update() 
@@ -159,10 +161,13 @@ void Player::InputMove()
 	const bool isJumpKeyPressed = input->PushKey(DIK_SPACE);
 
 	// 押した瞬間かつ接地中ならジャンプ
-	if (isJumpKeyPressed && !wasJumpKeyPressed_ && onGround_) 
+	if (isJumpKeyPressed && !wasJumpKeyPressed_ && onGround_)
 	{
 		velocity_.y = kJumpSpeed;
 		onGround_ = false;
+
+		// ジャンプSE再生要求
+		isJumpSERequested_ = true;
 	}
 
 	// 次フレーム用に保存
@@ -213,7 +218,7 @@ Vector3 Player::GetShieldPosition() const
 	{
 		return
 		{
-			playerPosition.x + 0.7f,
+			playerPosition.x,
 			playerPosition.y,
 			playerPosition.z
 		};
@@ -222,7 +227,7 @@ Vector3 Player::GetShieldPosition() const
 	{
 		return 
 		{
-			playerPosition.x - 0.7f,
+			playerPosition.x,
 			playerPosition.y,
 			playerPosition.z
 		};
@@ -277,10 +282,11 @@ void Player::MapCollision(CollisionMapInfo& info)
 	info.move = velocity_;
 
 	// 各方向の衝突判定
-	MapCollisionUp(info);
-	MapCollisionDown(info);
 	MapCollisionLeft(info);
 	MapCollisionRight(info);
+	MapCollisionUp(info);
+	MapCollisionDown(info);
+	
 }
 
 void Player::MapCollisionDown(CollisionMapInfo& info)
@@ -297,8 +303,9 @@ void Player::MapCollisionDown(CollisionMapInfo& info)
 		return;
 	}
 
-	// 移動前の中心座標
-	const Vector3 currentCenter = worldTransform_.translation_;
+	// 横方向の衝突判定後のX位置を考慮する
+	Vector3 currentCenter = worldTransform_.translation_;
+	currentCenter.x += info.move.x;
 
 	// 下方向の判定なのでY方向だけ移動させる
 	Vector3 movedCenter = currentCenter;
@@ -391,10 +398,11 @@ void Player::MapCollisionUp(CollisionMapInfo& info)
 		return;
 	}
 
-	// 移動前の中心座標
-	const Vector3 currentCenter = worldTransform_.translation_;
+	// 横方向の衝突判定後のX位置を考慮する
+	Vector3 currentCenter = worldTransform_.translation_;
+	currentCenter.x += info.move.x;
 
-// 上方向の判定なのでY方向だけ移動させる
+    // 上方向の判定なのでY方向だけ移動させる
 	Vector3 movedCenter = currentCenter;
 	movedCenter.y += info.move.y;
 

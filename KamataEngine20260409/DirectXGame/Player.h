@@ -73,6 +73,18 @@ public:
     // 動く床との衝突を解決
 	void ResolveMoveBlockCollision(const KamataEngine::Vector3& moveBlockPosition, const KamataEngine::Vector3& moveBlockMoveAmount);
 
+	// ジャンプSE再生要求があるか
+	bool IsJumpSERequested() const 
+	{ 
+		return isJumpSERequested_; 
+	}
+
+	// ジャンプSE再生要求を解除
+	void ClearJumpSERequest() 
+	{
+		isJumpSERequested_ = false;
+	}
+
 private:
 	// マップ衝突判定の結果
 	struct CollisionMapInfo 
@@ -199,5 +211,8 @@ private:
 
 	// 更新前のプレイヤー位置
 	KamataEngine::Vector3 previousPosition_ = {};
+
+	// ジャンプSE再生要求
+	bool isJumpSERequested_ = false;
 
 };

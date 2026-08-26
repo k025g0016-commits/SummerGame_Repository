@@ -1,11 +1,12 @@
 #pragma once
 #include "KamataEngine.h"
+#include <cstdint>
 
 class Switch
 {
 public:
 	// 初期化
-	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position);
+	void Initialize(KamataEngine::Model* model, KamataEngine::Camera* camera, const KamataEngine::Vector3& position, int32_t groupId);
 
 	// 更新
 	void Update();
@@ -25,6 +26,12 @@ public:
 		return isOn_; 
 	}
 
+	// グループ番号を取得
+	int32_t GetGroupId() const 
+	{ 
+		return groupId_;
+	}
+
 private:
 	// ワールド変換
 	KamataEngine::WorldTransform worldTransform_;
@@ -40,5 +47,8 @@ private:
 
 	// ONになっているか
 	bool isOn_ = false;
+
+	// グループ番号
+	int32_t groupId_ = 0;
 
 };

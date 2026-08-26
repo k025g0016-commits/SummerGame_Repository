@@ -41,4 +41,14 @@ private:
 	bool isSpaceWordVisible_ = true;
 
 	static inline const float kSpaceBlinkInterval = 0.5f;
+
+	// クリアBGM
+	uint32_t clearBGMHandle_ = 0;
+
+	// 現在再生しているクリアBGM
+	uint32_t clearBGMVoiceHandle_ = 0;
+
+	// クリアBGMを開始したか
+	bool isClearBGMStarted_ = false;
+
 };

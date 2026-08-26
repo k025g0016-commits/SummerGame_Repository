@@ -5,6 +5,7 @@
 #include "CameraController.h"
 #include "Enemy.h"
 #include "BackGroundWall.h"
+#include <unordered_map>
 
 // クラスの前方宣言
 class Player;
@@ -19,6 +20,10 @@ class ShutterDoor;
 class MoveBlock;
 class Spike;
 class Boss;
+class Tutorial;
+class RingEffect;
+class SparkParticle;
+class DeathParticle;
 
 // ゲームシーン
 class GameScene 
@@ -112,6 +117,28 @@ private:
 	// 背景壁モデル
 	KamataEngine::Model* backGroundWallModel_ = nullptr;
 
+	// チュートリアルモデル
+	KamataEngine::Model* tutorialPlateModel_ = nullptr;
+	KamataEngine::Model* moveTutorialModel_ = nullptr;
+	KamataEngine::Model* jumpTutorialModel_ = nullptr;
+	KamataEngine::Model* attackTutorialModel_ = nullptr;
+	KamataEngine::Model* defenceTutorialModel_ = nullptr;
+
+	// リングエフェクトモデル
+	KamataEngine::Model* ringEffectModel_ = nullptr;
+
+	// 火花パーティクルモデル
+	KamataEngine::Model* sparkParticleModel_ = nullptr;
+
+	// 死亡パーティクルモデル
+	KamataEngine::Model* deathParticleModel_ = nullptr;
+
+	// 死亡パーティクル
+	DeathParticle* deathParticle_ = nullptr;
+
+	// 死亡演出を開始したか
+	bool isDeathEffectStarted_ = false;
+
 	// ゲームオブジェクト
 	Player* player_ = nullptr;
 	Boomerang* boomerang_ = nullptr;
@@ -184,9 +211,11 @@ private:
 	// ボスエリアの境界
 	std::vector<KamataEngine::Vector3> bossAreaPositions_;
 
-	// ボスエリアの左端・右端
+	// ボスエリアの境界
 	float bossAreaLeft_ = 0.0f;
 	float bossAreaRight_ = 0.0f;
+	float bossAreaBottom_ = 0.0f;
+	float bossAreaTop_ = 0.0f;
 
 	// ボスエリアに入ったか
 	bool isBossAreaEntered_ = false;
@@ -200,5 +229,91 @@ private:
 	BackGroundWall* backGroundWall_ = nullptr;
 
 	bool isGameClear_ = false;
+
+	// チュートリアル
+	std::vector<Tutorial*> tutorials_;
+
+	RingEffect* ringEffect_ = nullptr;
+
+	// ガード成功時のリングエフェクト生成
+	void CreateGuardRingEffect();
+
+	// 指定位置にリングエフェクトを生成
+	void CreateRingEffect(const KamataEngine::Vector3& position);
+
+    // 指定位置に火花パーティクルを生成
+	void CreateSparkParticles(const KamataEngine::Vector3& position);
+
+	// 火花パーティクル
+	std::vector<SparkParticle*> sparkParticles_;
+
+	// 通常BGM
+	uint32_t gamePlayBGMHandle_ = 0;
+
+	// 現在再生している通常BGM
+	uint32_t gamePlayBGMVoiceHandle_ = 0;
+
+	// ボスBGM
+	uint32_t bossBGMHandle_ = 0;
+
+	// 現在再生しているボスBGM
+	uint32_t bossBGMVoiceHandle_ = 0;
+
+	// クリア移行中か
+	bool isClearTransition_ = false;
+
+	// ボスBGMフェード時間
+	float bossBGMFadeTimer_ = 0.0f;
+
+	// フェード時間
+	static inline const float kBossBGMFadeDuration = 1.0f;
+
+	// ボスBGM通常音量
+	static inline const float kBossBGMVolume = 0.5f;
+
+	// ガードSE
+	uint32_t guardSEHandle_ = 0;
+
+	// 発射SE
+	uint32_t shotSEHandle_ = 0;
+
+	// 剣攻撃SE
+	uint32_t swordAttackSEHandle_ = 0;
+
+	// 突進SE
+	uint32_t dashSEHandle_ = 0;
+
+	// 盾敵ごとの突進SE再生ハンドル
+	std::unordered_map<ShieldEnemy*, uint32_t> shieldEnemyDashVoiceHandles_;
+
+	// ボスの突進SE再生ハンドル
+	uint32_t bossDashVoiceHandle_ = 0;
+
+	// ボスの突進SEを再生中か
+	bool isBossDashSEPlaying_ = false;
+
+	// スイッチSE
+	uint32_t switchSEHandle_ = 0;
+
+	// プレイヤー死亡SE
+	uint32_t playerDeathSEHandle_ = 0;
+
+	// 敵ダメージSE
+	uint32_t enemyDamageSEHandle_ = 0;
+
+	// 敵死亡SE
+	uint32_t enemyDeathSEHandle_ = 0;
+
+	// ゲーム中SEの再生ハンドル
+	std::vector<uint32_t> gameSEVoiceHandles_;
+
+	// PlayerDeath以外のゲーム中SEを停止
+	void StopGameSEs();
+
+	// ゲーム中SEを再生
+	void PlayGameSE(uint32_t soundHandle, bool loopFlag = false, float volume = 0.5f);
+
+	// ジャンプSE
+	uint32_t jumpSEHandle_ = 0;
 
 };

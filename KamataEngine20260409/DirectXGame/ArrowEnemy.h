@@ -93,6 +93,12 @@ public:
 		return direction_;
 	}
 
+	// シャッタードアとの衝突を解決
+	void ResolveShutterDoorCollision(const KamataEngine::Vector3& doorPosition);
+
+	// MoveBlockとの衝突を解決
+	void ResolveMoveBlockCollision(const KamataEngine::Vector3& moveBlockPosition, const KamataEngine::Vector3& moveBlockMoveAmount);
+
 private:
 	// マップ衝突判定の結果
 	struct CollisionMapInfo 
@@ -275,5 +281,8 @@ private:
 
 	// 赤く表示する時間
 	static inline const float kDamageFlashDuration = 0.1f;
+
+	// 更新前の敵位置
+	KamataEngine::Vector3 previousPosition_ = {};
 
 };

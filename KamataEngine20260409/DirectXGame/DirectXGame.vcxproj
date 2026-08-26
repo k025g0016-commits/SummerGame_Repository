@@ -169,6 +169,7 @@
     <ClCompile Include="Boomerang.cpp" />
     <ClCompile Include="Boss.cpp" />
     <ClCompile Include="CameraController.cpp" />
+    <ClCompile Include="DeathParticle.cpp" />
     <ClCompile Include="Enemy.cpp" />
     <ClCompile Include="Fade.cpp" />
     <ClCompile Include="GameClearScene.cpp" />
@@ -179,12 +180,15 @@
     <ClCompile Include="MathUtility.cpp" />
     <ClCompile Include="MoveBlock.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="RingEffect.cpp" />
     <ClCompile Include="ShieldEnemy.cpp" />
     <ClCompile Include="ShutterDoor.cpp" />
     <ClCompile Include="SkyDome.cpp" />
+    <ClCompile Include="SparkParticle.cpp" />
     <ClCompile Include="Spike.cpp" />
     <ClCompile Include="Switch.cpp" />
     <ClCompile Include="TitleScene.cpp" />
+    <ClCompile Include="Tutorial.cpp" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\shaders\TerrainPS.hlsl">
@@ -290,6 +294,7 @@
     <ClInclude Include="Boomerang.h" />
     <ClInclude Include="Boss.h" />
     <ClInclude Include="CameraController.h" />
+    <ClInclude Include="DeathParticle.h" />
     <ClInclude Include="Enemy.h" />
     <ClInclude Include="Fade.h" />
     <ClInclude Include="GameClearScene.h" />
@@ -299,12 +304,15 @@
     <ClInclude Include="MathUtility.h" />
     <ClInclude Include="MoveBlock.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="RingEffect.h" />
     <ClInclude Include="ShieldEnemy.h" />
     <ClInclude Include="ShutterDoor.h" />
     <ClInclude Include="Skydome.h" />
+    <ClInclude Include="SparkParticle.h" />
     <ClInclude Include="Spike.h" />
     <ClInclude Include="Switch.h" />
     <ClInclude Include="TitleScene.h" />
+    <ClInclude Include="Tutorial.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

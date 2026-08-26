@@ -68,18 +68,40 @@ void GameOverScene::Initialize()
 	spaceBlinkTimer_ = 0.0f;
 	isSpaceWordVisible_ = true;
 
+	Audio* audio = Audio::GetInstance();
+
+	gameOverBGMHandle_ = audio->LoadWave("BGM/GameOver.wav");
+
+	// Initializeではまだ再生しない
+	isGameOverBGMStarted_ = false;
+
 }
 
 void GameOverScene::Update()
 {
+	// ゲームオーバーBGMを1度だけ再生
+	if (!isGameOverBGMStarted_) 
+	{
+		isGameOverBGMStarted_ = true;
+
+		gameOverBGMVoiceHandle_ = Audio::GetInstance()->PlayWave(gameOverBGMHandle_, false, 0.5f);
+	}
+
 	Input* input = Input::GetInstance();
 
 	// 現在のSpaceキー入力
 	const bool isSpaceKeyPressed = input->PushKey(DIK_SPACE);
 
 	// Spaceを押した瞬間にタイトルへ戻る
-	if (isSpaceKeyPressed && !wasSpaceKeyPressed_) 
+	if (isSpaceKeyPressed && !wasSpaceKeyPressed_)
 	{
+		// ゲームオーバーBGM停止
+		if (gameOverBGMVoiceHandle_ != 0)
+		{
+			Audio::GetInstance()->StopWave(gameOverBGMVoiceHandle_);
+			gameOverBGMVoiceHandle_ = 0;
+		}
+
 		returnTitleRequested_ = true;
 	}
 
@@ -89,12 +111,11 @@ void GameOverScene::Update()
 	// SPACE案内の点滅
 	spaceBlinkTimer_ += 1.0f / 60.0f;
 
-	if (spaceBlinkTimer_ >= kSpaceBlinkInterval) 
+	if (spaceBlinkTimer_ >= kSpaceBlinkInterval)
 	{
 		spaceBlinkTimer_ = 0.0f;
 		isSpaceWordVisible_ = !isSpaceWordVisible_;
 	}
-
 }
 
 void GameOverScene::Draw() 
@@ -111,6 +132,13 @@ void GameOverScene::Draw()
 
 GameOverScene::~GameOverScene()
 {
+	if (gameOverBGMVoiceHandle_ != 0) 
+	{
+		Audio::GetInstance()->StopWave(gameOverBGMVoiceHandle_);
+
+		gameOverBGMVoiceHandle_ = 0;
+	}
+
 	delete backgroundModel_;
 	backgroundModel_ = nullptr;
 

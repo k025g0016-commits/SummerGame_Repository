@@ -48,7 +48,7 @@ void GameClearScene::Initialize()
 	// Zは文字を背景よりカメラ側へ
 	backgroundTransform_.translation_ = {0.0f, 0.0f, 0.0f};
 	wordTransform_.translation_ = {0.0f, 0.0f, -0.1f};
-	spaceWordTransform_.translation_ = {0.0f, 0.0f, -0.2f};
+	spaceWordTransform_.translation_ = {0.0f, -2.0f, -0.2f};
 
 	// 行列作成
 	backgroundTransform_.matWorld_ = MakeAffineMatrix(backgroundTransform_.scale_, backgroundTransform_.rotation_, backgroundTransform_.translation_);
@@ -60,16 +60,40 @@ void GameClearScene::Initialize()
 	backgroundTransform_.TransferMatrix();
 	wordTransform_.TransferMatrix();
 	spaceWordTransform_.TransferMatrix();
+
+	// クリアBGM
+	Audio* audio = Audio::GetInstance();
+
+	clearBGMHandle_ = audio->LoadWave("BGM/Clear.wav");
+
+	// ここでは再生しない
+	isClearBGMStarted_ = false;
+
 }
 
 void GameClearScene::Update() 
 {
+	// クリアシーンが実際に更新された時にBGM開始
+	if (!isClearBGMStarted_)
+	{
+		isClearBGMStarted_ = true;
+
+		clearBGMVoiceHandle_ = Audio::GetInstance()->PlayWave(clearBGMHandle_, false, 0.5f);
+	}
+
 	Input* input = Input::GetInstance();
 
 	const bool isSpaceKeyPressed = input->PushKey(DIK_SPACE);
 
 	if (isSpaceKeyPressed && !wasSpaceKeyPressed_) 
 	{
+		// クリアBGMを停止
+		if (clearBGMVoiceHandle_ != 0)
+		{
+			Audio::GetInstance()->StopWave(clearBGMVoiceHandle_);
+			clearBGMVoiceHandle_ = 0;
+		}
+
 		returnTitleRequested_ = true;
 	}
 
@@ -99,6 +123,11 @@ void GameClearScene::Draw()
 
 GameClearScene::~GameClearScene()
 {
+	if (clearBGMVoiceHandle_ != 0) {
+		Audio::GetInstance()->StopWave(clearBGMVoiceHandle_);
+		clearBGMVoiceHandle_ = 0;
+	}
+
 	delete backgroundModel_;
 	backgroundModel_ = nullptr;
 
@@ -107,4 +136,5 @@ GameClearScene::~GameClearScene()
 
 	delete spaceWordModel_;
 	spaceWordModel_ = nullptr;
+
 }

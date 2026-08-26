@@ -2,6 +2,7 @@
 #include "MathUtility.h"
 #include "Player.h"
 #include "MapChipField.h"
+#include <numbers>
 
 using namespace KamataEngine;
 
@@ -14,7 +15,7 @@ void Boomerang::Initialize(Model* model, const Camera* camera, Player* player)
 	worldTransform_.Initialize();
 
 	// ringモデルの大きさに合わせて調整
-	worldTransform_.scale_ = {0.5f, 0.5f, 0.5f};
+	worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
 
 	phase_ = Phase::kHeld;
 
@@ -77,11 +78,19 @@ void Boomerang::Throw()
 	if (player_->GetLRDirection() == Player::LRDirection::kRight) 
 	{
 		velocity_ = {kThrowSpeed, 0.0f, 0.0f};
-	} else {
+	}
+	else 
+	{
 		velocity_ = {-kThrowSpeed, 0.0f, 0.0f};
 	}
 
+	// 投擲時は反対向きにする
+	worldTransform_.rotation_ = {0.0f, std::numbers::pi_v<float>, 0.0f};
+
+	// 投擲時だけ少し奥へ移動
+	worldTransform_.translation_.z += 0.5f;
 	phase_ = Phase::kOutbound;
+
 }
 
 Vector3 Boomerang::GetWorldPosition() const 
@@ -91,7 +100,32 @@ Vector3 Boomerang::GetWorldPosition() const
 
 void Boomerang::UpdateHeld() 
 { 
-	worldTransform_.translation_ = player_->GetShieldPosition(); 
+	// プレイヤーの手元に配置
+	worldTransform_.translation_ = player_->GetShieldPosition();
+
+	// ガード中は少し大きくする
+	if (player_->IsGuarding()) 
+	{
+		worldTransform_.scale_ = {1.3f, 1.3f, 1.3f};
+	}
+	else 
+	{
+		worldTransform_.scale_ = {1.0f, 1.0f, 1.0f};
+	}
+
+	// 所持中の盾の向き
+	worldTransform_.rotation_ = {0.0f, 0.0f, 0.0f};
+
+	if (player_->GetLRDirection() == Player::LRDirection::kRight)
+	{
+		// 右向き時
+		worldTransform_.rotation_.y = std::numbers::pi_v<float> / 2.0f;
+	}
+	else 
+	{
+		// 左向き時
+		worldTransform_.rotation_.y = -std::numbers::pi_v<float> / 2.0f;
+	}
 }
 
 void Boomerang::UpdateOutbound() 

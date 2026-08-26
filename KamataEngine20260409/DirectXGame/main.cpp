@@ -177,19 +177,32 @@ int WINAPI WinMain(_In_ HINSTANCE, _In_opt_ HINSTANCE, _In_ LPSTR, _In_ int)
 			}
 		}
 
+		// シーン切り替え中のBGMフェード更新
+		if (isSceneChanging && currentScene == Scene::kTitle) 
+		{
+			titleScene->UpdateBGMFade();
+		}
+
 		// フェード更新
 		fade->Update();
 
 		// フェードアウトが完了したら
 		if (isSceneChanging && fade->IsFinished()) 
 		{
+			// タイトルから別シーンへ移動する場合
+			if (currentScene == Scene::kTitle) 
+			{
+				titleScene->StopBGM();
+			}
+
 			// シーンを切り替える
 			currentScene = nextScene;
 
 			// 切り替え先の初期化
 			switch (currentScene)
 			{
-			case Scene::kTitle: {
+			case Scene::kTitle:
+			{
 				titleScene->Initialize();
 				break;
 			}

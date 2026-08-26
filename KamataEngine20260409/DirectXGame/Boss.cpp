@@ -56,6 +56,9 @@ void Boss::Initialize(Model* model, Model* swordModel, Model* crossbowModel, Cam
 	crossbowWorldTransform_.matWorld_ = MakeAffineMatrix(crossbowWorldTransform_.scale_, crossbowWorldTransform_.rotation_, crossbowWorldTransform_.translation_);
 
 	crossbowWorldTransform_.TransferMatrix();
+
+	swordAttackRequested_ = false;
+
 }
 
 void Boss::Update()
@@ -343,6 +346,10 @@ void Boss::UpdateBehavior()
 		if (behaviorTimer_ >= kSwordWindupDuration)
 		{
 			ChangeBehavior(BossBehavior::kSwordAttack);
+
+			// 剣を振り始めたのでSE再生要求
+			swordAttackRequested_ = true;
+
 		}
 
 		break;
@@ -534,6 +541,10 @@ void Boss::UpdateBehavior()
 			spinAngle_ = 0.0f;
 
 			ChangeBehavior(BossBehavior::kSpinAttack);
+
+			// 回転斬り開始
+			swordAttackRequested_ = true;
+
 		}
 
 		break;

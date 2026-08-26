@@ -49,4 +49,13 @@ private:
 	// 点滅間隔
 	static inline const float kSpaceBlinkInterval = 0.5f;
 
+	// ゲームオーバーBGM
+	uint32_t gameOverBGMHandle_ = 0;
+
+	// ゲームオーバーBGM再生ハンドル
+	uint32_t gameOverBGMVoiceHandle_ = 0;
+
+	// ゲームオーバーBGMを開始したか
+	bool isGameOverBGMStarted_ = false;
+
 };
